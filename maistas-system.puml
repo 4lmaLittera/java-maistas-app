@@ -1,0 +1,274 @@
+@startuml
+title Maisto Rezervavimo ir Valdymo Sistemos Klasių Diagrama
+
+abstract class User {
+  +id: UUID
+  +username: String
+  +passwordHash: String
+  +email: String
+  +phone: String
+  +status: UserStatus
+  +authenticate(password: String): Boolean
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum UserRole {
+  CLIENT
+  RESTAURANT_OWNER
+  DRIVER
+  ADMIN
+}
+
+class Client extends User {
+  +defaultAddress: String
+  +loyaltyPoints: int
+  +paymentMethods: List<PaymentMethod>
+  +addToCart(item: MenuItem, quantity: int): void
+  +placeOrder(order: Order): void
+}
+
+class RestaurantOwner extends User {
+  +managedRestaurants: List<Restaurant>
+  +approveOrder(order: Order): void
+  +updateMenuItem(item: MenuItem): void
+}
+
+class Driver extends User {
+  +vehicleInfo: String
+  +available: Boolean
+  +currentOrders: List<Order>
+  +acceptDelivery(order: Order): void
+  +updateDeliveryStatus(order: Order, status: OrderStatus): void
+}
+
+class Administrator extends User {
+  +suspendUser(user: User): void
+  +resolveIssue(ticket: SupportTicket, resolution: String): void
+  +manageRoles(user: User, role: UserRole): void
+}
+
+class Restaurant {
+  +id: UUID
+  +name: String
+  +address: String
+  +description: String
+  +rating: double
+  +operatingHours: OperatingSchedule
+  +applyPricingRules(order: Order): void
+}
+
+class Menu {
+  +id: UUID
+  +items: List<MenuItem>
+  +addItem(item: MenuItem): void
+  +removeItem(item: MenuItem): void
+  +updateItem(item: MenuItem): void
+}
+
+class MenuItem {
+  +id: UUID
+  +title: String
+  +description: String
+  +basePrice: BigDecimal
+  +isAvailable: Boolean
+  +category: MenuCategory
+  +inventoryCount: int
+  +calculatePrice(time: LocalDateTime, demand: DemandLevel): BigDecimal
+}
+
+enum MenuCategory {
+  STARTER
+  MAIN
+  DESSERT
+  DRINK
+  SPECIAL
+}
+
+class PricingRule {
+  +id: UUID
+  +name: String
+  +timeRange: TimeRange
+  +demandLevel: DemandLevel
+  +priceModifier: double
+  +apply(item: MenuItem): BigDecimal
+}
+
+enum DemandLevel {
+  LOW
+  MEDIUM
+  HIGH
+  PEAK
+}
+
+class TimeRange {
+  +start: LocalTime
+  +end: LocalTime
+  +contains(time: LocalTime): Boolean
+}
+
+class OperatingSchedule {
+  +days: Map<DayOfWeek, TimeRange>
+  +isOpen(time: LocalDateTime): Boolean
+}
+
+class Order {
+  +id: UUID
+  +totalPrice: BigDecimal
+  +placedAt: LocalDateTime
+  +deliveryAddress: String
+  +updateStatus(status: OrderStatus, actor: User): void
+  +filter(criteria: OrderFilterCriteria): Boolean
+}
+
+class OrderItem {
+  +menuItem: MenuItem
+  +quantity: int
+  +unitPrice: BigDecimal
+  +specialInstructions: String
+  +subtotal(): BigDecimal
+}
+
+class OrderStatusChange {
+  +status: OrderStatus
+  +changedAt: LocalDateTime
+  +changedBy: User
+  +note: String
+}
+
+enum OrderStatus {
+  CREATED
+  CONFIRMED
+  PREPARING
+  READY
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+class DeliveryStatus {
+  +status: OrderStatus
+  +location: GeoCoordinate
+  +timestamp: LocalDateTime
+}
+
+class GeoCoordinate {
+  +latitude: double
+  +longitude: double
+}
+
+class OrderFilterCriteria {
+  +status: OrderStatus
+  +dateRange: DateRange
+  +restaurantName: String
+  +minTotal: BigDecimal
+  +maxTotal: BigDecimal
+  +driverName: String
+  +apply(orders: List<Order>): List<Order>
+}
+
+class DateRange {
+  +start: LocalDateTime
+  +end: LocalDateTime
+  +contains(time: LocalDateTime): Boolean
+}
+
+class ChatThread {
+  +id: UUID
+  +addMessage(message: ChatMessage): void
+}
+
+class ChatMessage {
+  +id: UUID
+  +content: String
+  +sentAt: LocalDateTime
+  +messageType: MessageType
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  SYSTEM
+}
+
+class Review {
+  +id: UUID
+  +rating: int
+  +comment: String
+  +createdAt: LocalDateTime
+  +updateRating(newRating: int): void
+}
+
+class LoyaltyAccount {
+  +pointsBalance: int
+  +tier: LoyaltyTier
+  +earnPoints(order: Order): void
+  +redeemPoints(amount: int): void
+  +calculateTier(): LoyaltyTier
+}
+
+enum LoyaltyTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+class SupportTicket {
+  +id: UUID
+  +status: TicketStatus
+  +description: String
+  +resolve(resolution: String): void
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+class PaymentMethod {
+  +type: PaymentType
+  +details: String
+  +isDefault: Boolean
+}
+
+enum PaymentType {
+  CARD
+  CASH
+  WALLET
+}
+
+User <|-- Client
+User <|-- RestaurantOwner
+User <|-- Driver
+User <|-- Administrator
+
+RestaurantOwner "1" -- "*" Restaurant : valdo
+Restaurant "1" o-- "1" Menu
+Restaurant "1" o-- "*" PricingRule
+Menu "1" o-- "*" MenuItem
+Order "1" *-- "*" OrderItem
+Order "1" o-- "*" OrderStatusChange
+Order "1" o-- "1" DeliveryStatus
+Order "*" --> "1" Client : pateikia
+Order "*" --> "1" Restaurant : siunčia
+Order "*" --> "0..1" Driver : pristato
+Order "1" o-- "1" ChatThread
+ChatThread "1" o-- "*" ChatMessage
+ChatThread "*" -- "*" User : dalyvauja
+Review "*" --> "1" User : tikslas
+Review "*" --> "0..1" Restaurant : apie restoraną
+Client "1" o-- "1" LoyaltyAccount
+Client "1" o-- "*" PaymentMethod
+Administrator "*" --> "*" SupportTicket : sprendžia
+SupportTicket "*" --> "0..1" Order
+SupportTicket "*" --> "1" User : sukūrė
+SupportTicket "*" --> "0..1" Administrator : priskirtas
+@enduml
+
