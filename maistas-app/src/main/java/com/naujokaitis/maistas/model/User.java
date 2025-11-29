@@ -1,42 +1,66 @@
 package com.naujokaitis.maistas.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.Objects;
-import org.mindrot.jbcrypt.BCrypt;
 import java.util.UUID;
 
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "dtype")
+@Table(name = "users")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class User {
 
-    @NonNull
-    private final UUID id;
-    @NonNull
-    private final String username;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    @Column(name = "username", nullable = false, unique = true)
+    private String username;
+
     @Getter(AccessLevel.PROTECTED)
-    @NonNull
-    private final String password;
-    @NonNull
-    private final String email;
-    @NonNull
-    private final String phone;
+    @Column(name = "password_hash", nullable = false)
+    private String password;
+
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
+
+    @Column(name = "phone", nullable = false)
+    private String phone;
+
     @Setter(AccessLevel.PACKAGE)
-    @NonNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private UserStatus status;
+
     @Setter
-    @NonNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
     private UserRole role;
 
-    protected User(UUID id,
-            String username,
-            String password,
-            String email,
-            String phone,
-            UserStatus status,
-            UserRole role) {
+    public User(@NonNull UUID id,
+            @NonNull String username,
+            @NonNull String password,
+            @NonNull String email,
+            @NonNull String phone,
+            @NonNull UserStatus status,
+            @NonNull UserRole role) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.username = Objects.requireNonNull(username, "username must not be null");
         this.password = Objects.requireNonNull(password, "password must not be null");
@@ -54,11 +78,9 @@ public abstract class User {
         if (password == null || this.password == null) {
             return false;
         }
-        // If stored value looks like a BCrypt hash, verify with BCrypt
         if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$") || this.password.startsWith("$2y$")) {
             return BCrypt.checkpw(password, this.password);
         }
-        // Fallback for legacy plaintext passwords (migration support)
         return this.password.equals(password);
     }
 }

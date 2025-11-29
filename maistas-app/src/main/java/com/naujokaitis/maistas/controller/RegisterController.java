@@ -4,9 +4,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import com.naujokaitis.maistas.database.DatabaseConnection;
-import com.naujokaitis.maistas.dao.UserDAO;
 import com.naujokaitis.maistas.App;
+import com.naujokaitis.maistas.database.GenericHibernate;
 import com.naujokaitis.maistas.model.Administrator;
 import com.naujokaitis.maistas.model.RestaurantOwner;
 import org.mindrot.jbcrypt.BCrypt;
@@ -16,8 +15,6 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import java.sql.Connection;
-import java.sql.SQLException;
 import com.naujokaitis.maistas.model.User;
 import java.util.UUID;
 import java.io.IOException;
@@ -93,35 +90,21 @@ public class RegisterController {
     }
 
     private void registerUser(User user) {
+        GenericHibernate<User> userRepo = new GenericHibernate<>(User.class);
+        userRepo.save(user);
+
+        Session.getInstance().setCurrentUser(user);
+
+        System.out.println("User saved successfully");
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Success");
+        alert.setHeaderText(null);
+        alert.setContentText("User saved successfully");
+        alert.showAndWait();
+
         try {
-            Connection connection = DatabaseConnection.getConnection();
-            UserDAO userDAO = new UserDAO(connection);
-
-            boolean success = userDAO.saveUserToDatabase(user);
-            if (success) {
-                Session.getInstance().setCurrentUser(user);
-
-                System.out.println("User saved successfully");
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("Success");
-                alert.setHeaderText(null);
-                alert.setContentText("User saved successfully");
-                alert.showAndWait();
-
-                try {
-                    App.showMainView();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                Alert alert = new Alert(AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setHeaderText(null);
-                alert.setContentText("Failed to save user");
-                alert.showAndWait();
-            }
-            DatabaseConnection.closeConnection(connection);
-        } catch (SQLException e) {
+            App.showMainView();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
