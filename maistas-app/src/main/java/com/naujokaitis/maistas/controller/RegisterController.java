@@ -9,6 +9,7 @@ import com.naujokaitis.maistas.dao.UserDAO;
 import com.naujokaitis.maistas.App;
 import com.naujokaitis.maistas.model.Administrator;
 import com.naujokaitis.maistas.model.RestaurantOwner;
+import org.mindrot.jbcrypt.BCrypt;
 import com.naujokaitis.maistas.model.Session;
 import com.naujokaitis.maistas.model.UserStatus;
 import javafx.scene.control.Tab;
@@ -60,17 +61,18 @@ public class RegisterController {
     }
 
     private void register() {
-        if (!validateFields()) {
-            return;
-        }
-
         Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
         String tabText = selectedTab.getText().trim();
 
         User user = null;
         switch (tabText) {
             case "Administrator":
-                user = new Administrator(UUID.randomUUID(), usernameField.getText(), passwordField.getText(),
+                if (!validateFields()) {
+                    return;
+                }
+                String rawAdmin = passwordField.getText();
+                String hashedAdmin = BCrypt.hashpw(rawAdmin, BCrypt.gensalt());
+                user = new Administrator(UUID.randomUUID(), usernameField.getText(), hashedAdmin,
                         emailField.getText(), phoneField.getText(), UserStatus.ACTIVE);
                 break;
             case "Restaurant Owner":
@@ -78,9 +80,13 @@ public class RegisterController {
                 if (!validateOwnerFields()) {
                     return;
                 }
-                user = new RestaurantOwner(UUID.randomUUID(), usernameField1.getText(), passwordField1.getText(),
+                String rawOwner = passwordField1.getText();
+                String hashedOwner = BCrypt.hashpw(rawOwner, BCrypt.gensalt());
+                user = new RestaurantOwner(UUID.randomUUID(), usernameField1.getText(), hashedOwner,
                         emailField1.getText(), phoneField1.getText());
                 break;
+            default:
+                return;
         }
 
         registerUser(user);

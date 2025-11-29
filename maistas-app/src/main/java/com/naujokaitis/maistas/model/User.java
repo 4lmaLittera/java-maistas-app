@@ -6,6 +6,7 @@ import lombok.NonNull;
 import lombok.Setter;
 
 import java.util.Objects;
+import org.mindrot.jbcrypt.BCrypt;
 import java.util.UUID;
 
 @Getter
@@ -53,6 +54,11 @@ public abstract class User {
         if (password == null || this.password == null) {
             return false;
         }
+        // If stored value looks like a BCrypt hash, verify with BCrypt
+        if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$") || this.password.startsWith("$2y$")) {
+            return BCrypt.checkpw(password, this.password);
+        }
+        // Fallback for legacy plaintext passwords (migration support)
         return this.password.equals(password);
     }
 }
