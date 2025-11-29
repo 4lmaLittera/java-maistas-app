@@ -19,7 +19,18 @@ public class UserDAO {
             case CLIENT:
                 return false;
             case RESTAURANT_OWNER:
-                return false;
+                String sqlOwner = "INSERT INTO users (id, username, password_hash, email, phone, status, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                PreparedStatement stmtOwner = connection.prepareStatement(sqlOwner);
+                stmtOwner.setString(1, user.getId().toString());
+                stmtOwner.setString(2, user.getUsername());
+                stmtOwner.setString(3, user.getPasswordHash());
+                stmtOwner.setString(4, user.getEmail());
+                stmtOwner.setString(5, user.getPhone());
+                // default to ACTIVE if UserStatus available
+                stmtOwner.setString(6, (user.getStatus() != null) ? user.getStatus().toString() : "ACTIVE");
+                stmtOwner.setString(7, user.getRole().toString());
+                stmtOwner.executeUpdate();
+                return true;
             case DRIVER:
                 return false;
             case ADMIN:
