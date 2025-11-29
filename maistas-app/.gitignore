@@ -1,0 +1,62 @@
+# Compiled class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Maven
+/target/
+/.mvn/
+dependency-reduced-pom.xml
+release.properties
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/private/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# H2 database files (test)
+*.mv.db
+*.trace.db
+testdb.*
+
+# Database files
+*.db
+
+# Generated sources
+/generated-sources/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Others
+Thumbs.db
