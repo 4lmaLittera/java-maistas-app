@@ -272,7 +272,15 @@ public class MainViewController {
 
     @FXML
     private void handleAddRestaurant() {
-        showInfo("Coming Soon", "Add Restaurant feature will be implemented next");
+        RestaurantDialog.showAddDialog().ifPresent(restaurant -> {
+            try {
+                restaurantRepo.save(restaurant);
+                restaurants.add(restaurant);
+                statusLabel.setText("Restaurant added successfully");
+            } catch (Exception e) {
+                showError("Add Error", "Failed to add restaurant", e.getMessage());
+            }
+        });
     }
 
     @FXML
@@ -280,7 +288,16 @@ public class MainViewController {
         Restaurant selected = restaurantsTable.getSelectionModel().getSelectedItem();
         if (selected == null)
             return;
-        showInfo("Coming Soon", "Edit Restaurant feature will be implemented next");
+
+        RestaurantDialog.showEditDialog(selected).ifPresent(restaurant -> {
+            try {
+                restaurantRepo.update(restaurant);
+                restaurantsTable.refresh();
+                statusLabel.setText("Restaurant updated successfully");
+            } catch (Exception e) {
+                showError("Update Error", "Failed to update restaurant", e.getMessage());
+            }
+        });
     }
 
     @FXML
@@ -322,12 +339,32 @@ public class MainViewController {
 
     @FXML
     private void handleAddMenuItem() {
-        showInfo("Coming Soon", "Add Menu Item feature will be implemented next");
+        MenuItemDialog.showAddDialog().ifPresent(menuItem -> {
+            try {
+                menuItemRepo.save(menuItem);
+                menuItems.add(menuItem);
+                statusLabel.setText("Menu item added successfully");
+            } catch (Exception e) {
+                showError("Add Error", "Failed to add menu item", e.getMessage());
+            }
+        });
     }
 
     @FXML
     private void handleEditMenuItem() {
-        showInfo("Coming Soon", "Edit Menu Item feature will be implemented next");
+        com.naujokaitis.maistas.model.MenuItem selected = menuItemsTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        MenuItemDialog.showEditDialog(selected).ifPresent(menuItem -> {
+            try {
+                menuItemRepo.update(menuItem);
+                menuItemsTable.refresh();
+                statusLabel.setText("Menu item updated successfully");
+            } catch (Exception e) {
+                showError("Update Error", "Failed to update menu item", e.getMessage());
+            }
+        });
     }
 
     @FXML
