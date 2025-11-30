@@ -22,6 +22,8 @@ public class MainViewController {
     @FXML
     private Tab restaurantsTab;
     @FXML
+    private Tab menusTab;
+    @FXML
     private Tab menuItemsTab;
     @FXML
     private Tab ordersTab;
@@ -45,6 +47,22 @@ public class MainViewController {
     private Button editRestaurantBtn;
     @FXML
     private Button deleteRestaurantBtn;
+
+    // Menus Tab
+    @FXML
+    private TableView<com.naujokaitis.maistas.model.Menu> menusTable;
+    @FXML
+    private TableColumn<com.naujokaitis.maistas.model.Menu, String> menuIdCol;
+    @FXML
+    private TableColumn<com.naujokaitis.maistas.model.Menu, String> menuNameCol;
+    @FXML
+    private TableColumn<com.naujokaitis.maistas.model.Menu, Integer> menuItemCountCol;
+    @FXML
+    private Button addMenuBtn;
+    @FXML
+    private Button editMenuBtn;
+    @FXML
+    private Button deleteMenuBtn;
 
     // Menu Items Tab
     @FXML
@@ -81,6 +99,12 @@ public class MainViewController {
     private TableColumn<Order, LocalDateTime> orderDateCol;
     @FXML
     private ComboBox<OrderStatus> orderStatusFilter;
+    @FXML
+    private Button addOrderBtn;
+    @FXML
+    private Button editOrderBtn;
+    @FXML
+    private Button deleteOrderBtn;
 
     // Users Tab
     @FXML
@@ -108,6 +132,7 @@ public class MainViewController {
 
     // Data storage
     private final ObservableList<Restaurant> restaurants = FXCollections.observableArrayList();
+    private final ObservableList<com.naujokaitis.maistas.model.Menu> menus = FXCollections.observableArrayList();
     private final ObservableList<com.naujokaitis.maistas.model.MenuItem> menuItems = FXCollections
             .observableArrayList();
     private final ObservableList<Order> orders = FXCollections.observableArrayList();
@@ -115,6 +140,8 @@ public class MainViewController {
 
     // Database access
     private final GenericHibernate<Restaurant> restaurantRepo = new GenericHibernate<>(Restaurant.class);
+    private final GenericHibernate<com.naujokaitis.maistas.model.Menu> menuRepo = new GenericHibernate<>(
+            com.naujokaitis.maistas.model.Menu.class);
     private final GenericHibernate<com.naujokaitis.maistas.model.MenuItem> menuItemRepo = new GenericHibernate<>(
             com.naujokaitis.maistas.model.MenuItem.class);
     private final GenericHibernate<Order> orderRepo = new GenericHibernate<>(Order.class);
@@ -140,6 +167,15 @@ public class MainViewController {
             return new javafx.beans.property.SimpleStringProperty(ownerName);
         });
         restaurantsTable.setItems(restaurants);
+
+        // Menus table
+        menuNameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
+        menuIdCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getId().toString().substring(0, 8)));
+        menuItemCountCol.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getItems().size())
+                        .asObject());
+        menusTable.setItems(menus);
 
         // Menu Items table
         menuItemNameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -209,10 +245,22 @@ public class MainViewController {
             deleteRestaurantBtn.setDisable(!selected);
         });
 
+        menusTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            boolean selected = newVal != null;
+            editMenuBtn.setDisable(!selected);
+            deleteMenuBtn.setDisable(!selected);
+        });
+
         menuItemsTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             boolean selected = newVal != null;
             editMenuItemBtn.setDisable(!selected);
             deleteMenuItemBtn.setDisable(!selected);
+        });
+
+        ordersTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            boolean selected = newVal != null;
+            editOrderBtn.setDisable(!selected);
+            deleteOrderBtn.setDisable(!selected);
         });
 
         usersTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -224,6 +272,7 @@ public class MainViewController {
 
     private void loadAllData() {
         handleRefreshRestaurants();
+        handleRefreshMenus();
         handleRefreshMenuItems();
         handleRefreshOrders();
         handleRefreshUsers();
@@ -319,6 +368,70 @@ public class MainViewController {
                     statusLabel.setText("Restaurant deleted successfully");
                 } catch (Exception e) {
                     showError("Delete Error", "Failed to delete restaurant", e.getMessage());
+                }
+            }
+        });
+    }
+
+    // Menu actions
+    @FXML
+    private void handleRefreshMenus() {
+        try {
+            List<com.naujokaitis.maistas.model.Menu> data = menuRepo.findAll();
+            menus.clear();
+            menus.addAll(data);
+            statusLabel.setText("Loaded " + data.size() + " menus");
+        } catch (Exception e) {
+            showError("Load Error", "Failed to load menus", e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleAddMenu() {
+        MenuDialog.showCreateDialog().ifPresent(menu -> {
+            // Menu is already saved via Restaurant cascade in MenuDialog
+            menus.add(menu);
+            statusLabel.setText("Menu created successfully");
+            handleRefreshRestaurants(); // Refresh restaurants to show updated menu
+        });
+    }
+
+    @FXML
+    private void handleEditMenu() {
+        com.naujokaitis.maistas.model.Menu selected = menusTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        MenuDialog.showEditDialog(selected).ifPresent(menu -> {
+            try {
+                menuRepo.update(menu);
+                menusTable.refresh();
+                statusLabel.setText("Menu updated successfully");
+            } catch (Exception e) {
+                showError("Update Error", "Failed to update menu", e.getMessage());
+            }
+        });
+    }
+
+    @FXML
+    private void handleDeleteMenu() {
+        com.naujokaitis.maistas.model.Menu selected = menusTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm Delete");
+        confirm.setHeaderText("Delete Menu?");
+        confirm.setContentText("This will also delete all menu items. Are you sure?");
+
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                try {
+                    menuRepo.delete(selected);
+                    menus.remove(selected);
+                    statusLabel.setText("Menu deleted successfully");
+                } catch (Exception e) {
+                    showError("Delete Error", "Failed to delete menu", e.getMessage());
                 }
             }
         });
@@ -425,6 +538,63 @@ public class MainViewController {
         }
     }
 
+    @FXML
+    private void handleAddOrder() {
+        OrderDialog.showCreateDialog().ifPresent(order -> {
+            try {
+                orderRepo.save(order);
+                orders.add(order);
+                statusLabel.setText("Order created successfully");
+            } catch (Exception e) {
+                showError("Add Error", "Failed to create order", e.getMessage());
+            }
+        });
+    }
+
+    @FXML
+    private void handleEditOrder() {
+        Order selected = ordersTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        OrderStatusDialog dialog = new OrderStatusDialog(selected);
+        dialog.showAndWait().ifPresent(newStatus -> {
+            try {
+                User currentUser = Session.getInstance().getCurrentUser();
+                selected.updateStatus(newStatus, currentUser, dialog.getNote());
+                orderRepo.update(selected);
+                ordersTable.refresh();
+                statusLabel.setText("Order status updated to " + newStatus);
+            } catch (Exception e) {
+                showError("Update Error", "Failed to update order status", e.getMessage());
+            }
+        });
+    }
+
+    @FXML
+    private void handleDeleteOrder() {
+        Order selected = ordersTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm Delete");
+        confirm.setHeaderText("Delete Order #" + selected.getId().toString().substring(0, 8));
+        confirm.setContentText("Are you sure? This action cannot be undone.");
+
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                try {
+                    orderRepo.delete(selected);
+                    orders.remove(selected);
+                    statusLabel.setText("Order deleted successfully");
+                } catch (Exception e) {
+                    showError("Delete Error", "Failed to delete order", e.getMessage());
+                }
+            }
+        });
+    }
+
     // User actions
     @FXML
     private void handleRefreshUsers() {
@@ -440,12 +610,32 @@ public class MainViewController {
 
     @FXML
     private void handleAddUser() {
-        showInfo("Coming Soon", "Add User feature will be implemented next");
+        UserDialog.showCreateDialog().ifPresent(user -> {
+            try {
+                userRepo.save(user);
+                users.add(user);
+                statusLabel.setText("User created successfully");
+            } catch (Exception e) {
+                showError("Add Error", "Failed to create user", e.getMessage());
+            }
+        });
     }
 
     @FXML
     private void handleEditUser() {
-        showInfo("Coming Soon", "Edit User feature will be implemented next");
+        User selected = usersTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        UserDialog.showEditDialog(selected).ifPresent(user -> {
+            try {
+                userRepo.update(user);
+                usersTable.refresh();
+                statusLabel.setText("User updated successfully");
+            } catch (Exception e) {
+                showError("Update Error", "Failed to update user", e.getMessage());
+            }
+        });
     }
 
     @FXML

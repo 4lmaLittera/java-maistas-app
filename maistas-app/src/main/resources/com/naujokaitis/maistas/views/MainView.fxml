@@ -46,6 +46,29 @@
                 </content>
             </Tab>
             
+            <!-- Menus Tab - for Restaurant Owners -->
+            <Tab fx:id="menusTab" text="Menus">
+                <content>
+                    <VBox spacing="10" style="-fx-padding: 10;">
+                        <HBox spacing="10">
+                            <Button fx:id="addMenuBtn" text="Create Menu" onAction="#handleAddMenu" />
+                            <Button fx:id="editMenuBtn" text="Edit Menu" onAction="#handleEditMenu" disable="true" />
+                            <Button fx:id="deleteMenuBtn" text="Delete Menu" onAction="#handleDeleteMenu" disable="true" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button text="Refresh" onAction="#handleRefreshMenus" />
+                        </HBox>
+                        
+                        <TableView fx:id="menusTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="menuNameCol" text="Name" prefWidth="200" />
+                                <TableColumn fx:id="menuIdCol" text="Menu ID" prefWidth="150" />
+                                <TableColumn fx:id="menuItemCountCol" text="Items Count" prefWidth="100" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            
             <!-- Menu Items Tab - for Restaurant Owners -->
             <Tab fx:id="menuItemsTab" text="Menu Items">
                 <content>
@@ -75,9 +98,13 @@
                 <content>
                     <VBox spacing="10" style="-fx-padding: 10;">
                         <HBox spacing="10">
-                            <Label text="Filter by Status:" />
+                            <Button fx:id="addOrderBtn" text="Create Order" onAction="#handleAddOrder" />
+                            <Button fx:id="editOrderBtn" text="Change Status" onAction="#handleEditOrder" disable="true" />
+                            <Button fx:id="deleteOrderBtn" text="Delete Order" onAction="#handleDeleteOrder" disable="true" />
+                            <Separator orientation="VERTICAL" />
+                            <Label text="Filter:" />
                             <ComboBox fx:id="orderStatusFilter" promptText="All" />
-                            <Button text="Apply Filter" onAction="#handleFilterOrders" />
+                            <Button text="Apply" onAction="#handleFilterOrders" />
                             <Region HBox.hgrow="ALWAYS" />
                             <Button text="Refresh" onAction="#handleRefreshOrders" />
                         </HBox>

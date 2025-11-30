@@ -3,7 +3,6 @@ package com.naujokaitis.maistas.controller;
 import com.naujokaitis.maistas.database.GenericHibernate;
 import com.naujokaitis.maistas.model.Menu;
 import com.naujokaitis.maistas.model.MenuCategory;
-import com.naujokaitis.maistas.model.Restaurant;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;

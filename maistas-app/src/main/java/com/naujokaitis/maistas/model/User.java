@@ -44,7 +44,7 @@ public abstract class User {
     @Column(name = "phone", nullable = false)
     private String phone;
 
-    @Setter(AccessLevel.PACKAGE)
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private UserStatus status;
