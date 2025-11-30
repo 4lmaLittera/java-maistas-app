@@ -7,28 +7,11 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import java.sql.Connection;
-import com.naujokaitis.maistas.database.DatabaseConnection;
-import com.naujokaitis.maistas.database.DatabaseInitializer;
-
-import java.sql.SQLException;
 
 public class App extends Application {
     private static Stage primaryStage;
 
-
     public static void main(String[] args) {
-        try {
-            Connection connection = DatabaseConnection.getConnection();
-            System.out.println("Connected to database");
-            DatabaseConnection.closeConnection(connection);
-            System.out.println("Disconnected from database");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        DatabaseInitializer.initializeDatabase();
-
         Application.launch(args);
 
     }
@@ -62,6 +45,6 @@ public class App extends Application {
         Parent root = FXMLLoader.load(App.class.getResource("/com/naujokaitis/maistas/views/MainView.fxml"));
         primaryStage.setScene(new Scene(root, 800, 400));
         primaryStage.setTitle("Maistas – Pagrindinis langas");
-        
+
     }
 }

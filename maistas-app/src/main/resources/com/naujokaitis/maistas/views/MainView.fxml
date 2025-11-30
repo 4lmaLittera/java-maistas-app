@@ -1,27 +1,161 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Slider?>
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.ToggleButton?>
-<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<TabPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/25">
-  <tabs>
-    <Tab text="Untitled Tab 1">
-      <content>
-        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
-               <children>
-                  <Slider layoutX="139.0" layoutY="56.0" orientation="VERTICAL" />
-                  <Slider layoutX="273.0" layoutY="177.0" />
-                  <ToggleButton layoutX="264.0" layoutY="74.0" mnemonicParsing="false" text="ToggleButton" />
-               </children></AnchorPane>
-      </content>
-    </Tab>
-    <Tab text="Untitled Tab 2">
-      <content>
-        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
-      </content>
-    </Tab>
-  </tabs>
-</TabPane>
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.naujokaitis.maistas.controller.MainViewController"
+            prefHeight="700.0" prefWidth="1000.0">
+    
+    <top>
+        <MenuBar>
+            <Menu text="File">
+                <MenuItem text="Logout" onAction="#handleLogout" />
+            </Menu>
+            <Menu text="Help">
+                <MenuItem text="About" onAction="#handleAbout" />
+            </Menu>
+        </MenuBar>
+    </top>
+    
+    <center>
+        <TabPane fx:id="mainTabPane" tabClosingPolicy="UNAVAILABLE">
+            <!-- Restaurants Tab - visible to all -->
+            <Tab fx:id="restaurantsTab" text="Restaurants">
+                <content>
+                    <VBox spacing="10" style="-fx-padding: 10;">
+                        <!-- Toolbar -->
+                        <HBox spacing="10">
+                            <Button fx:id="addRestaurantBtn" text="Add Restaurant" onAction="#handleAddRestaurant" />
+                            <Button fx:id="editRestaurantBtn" text="Edit Restaurant" onAction="#handleEditRestaurant" disable="true" />
+                            <Button fx:id="deleteRestaurantBtn" text="Delete Restaurant" onAction="#handleDeleteRestaurant" disable="true" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button text="Refresh" onAction="#handleRefreshRestaurants" />
+                        </HBox>
+                        
+                        <!-- Table -->
+                        <TableView fx:id="restaurantsTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="restaurantNameCol" text="Name" prefWidth="200" />
+                                <TableColumn fx:id="restaurantAddressCol" text="Address" prefWidth="250" />
+                                <TableColumn fx:id="restaurantRatingCol" text="Rating" prefWidth="80" />
+                                <TableColumn fx:id="restaurantOwnerCol" text="Owner" prefWidth="150" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            
+            <!-- Menus Tab - for Restaurant Owners -->
+            <Tab fx:id="menusTab" text="Menus">
+                <content>
+                    <VBox spacing="10" style="-fx-padding: 10;">
+                        <HBox spacing="10">
+                            <Button fx:id="addMenuBtn" text="Create Menu" onAction="#handleAddMenu" />
+                            <Button fx:id="editMenuBtn" text="Edit Menu" onAction="#handleEditMenu" disable="true" />
+                            <Button fx:id="deleteMenuBtn" text="Delete Menu" onAction="#handleDeleteMenu" disable="true" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button text="Refresh" onAction="#handleRefreshMenus" />
+                        </HBox>
+                        
+                        <TableView fx:id="menusTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="menuNameCol" text="Name" prefWidth="200" />
+                                <TableColumn fx:id="menuIdCol" text="Menu ID" prefWidth="150" />
+                                <TableColumn fx:id="menuItemCountCol" text="Items Count" prefWidth="100" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            
+            <!-- Menu Items Tab - for Restaurant Owners -->
+            <Tab fx:id="menuItemsTab" text="Menu Items">
+                <content>
+                    <VBox spacing="10" style="-fx-padding: 10;">
+                        <HBox spacing="10">
+                            <Button fx:id="addMenuItemBtn" text="Add Menu Item" onAction="#handleAddMenuItem" />
+                            <Button fx:id="editMenuItemBtn" text="Edit Menu Item" onAction="#handleEditMenuItem" disable="true" />
+                            <Button fx:id="deleteMenuItemBtn" text="Delete Menu Item" onAction="#handleDeleteMenuItem" disable="true" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button text="Refresh" onAction="#handleRefreshMenuItems" />
+                        </HBox>
+                        
+                        <TableView fx:id="menuItemsTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="menuItemNameCol" text="Name" prefWidth="200" />
+                                <TableColumn fx:id="menuItemCategoryCol" text="Category" prefWidth="120" />
+                                <TableColumn fx:id="menuItemPriceCol" text="Price" prefWidth="100" />
+                                <TableColumn fx:id="menuItemInventoryCol" text="Inventory" prefWidth="100" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            
+            <!-- Orders Tab - visible to all with different views -->
+            <Tab fx:id="ordersTab" text="Orders">
+                <content>
+                    <VBox spacing="10" style="-fx-padding: 10;">
+                        <HBox spacing="10">
+                            <Button fx:id="addOrderBtn" text="Create Order" onAction="#handleAddOrder" />
+                            <Button fx:id="editOrderBtn" text="Change Status" onAction="#handleEditOrder" disable="true" />
+                            <Button fx:id="deleteOrderBtn" text="Delete Order" onAction="#handleDeleteOrder" disable="true" />
+                            <Separator orientation="VERTICAL" />
+                            <Label text="Filter:" />
+                            <ComboBox fx:id="orderStatusFilter" promptText="All" />
+                            <Button text="Apply" onAction="#handleFilterOrders" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button text="Refresh" onAction="#handleRefreshOrders" />
+                        </HBox>
+                        
+                        <TableView fx:id="ordersTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="orderIdCol" text="Order ID" prefWidth="100" />
+                                <TableColumn fx:id="orderClientCol" text="Client" prefWidth="150" />
+                                <TableColumn fx:id="orderRestaurantCol" text="Restaurant" prefWidth="150" />
+                                <TableColumn fx:id="orderStatusCol" text="Status" prefWidth="120" />
+                                <TableColumn fx:id="orderTotalCol" text="Total" prefWidth="100" />
+                                <TableColumn fx:id="orderDateCol" text="Date" prefWidth="150" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            
+            <!-- Users Tab - Admin only -->
+            <Tab fx:id="usersTab" text="Users">
+                <content>
+                    <VBox spacing="10" style="-fx-padding: 10;">
+                        <HBox spacing="10">
+                            <Button fx:id="addUserBtn" text="Add User" onAction="#handleAddUser" />
+                            <Button fx:id="editUserBtn" text="Edit User" onAction="#handleEditUser" disable="true" />
+                            <Button fx:id="deleteUserBtn" text="Delete User" onAction="#handleDeleteUser" disable="true" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button text="Refresh" onAction="#handleRefreshUsers" />
+                        </HBox>
+                        
+                        <TableView fx:id="usersTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="userUsernameCol" text="Username" prefWidth="150" />
+                                <TableColumn fx:id="userEmailCol" text="Email" prefWidth="200" />
+                                <TableColumn fx:id="userRoleCol" text="Role" prefWidth="120" />
+                                <TableColumn fx:id="userStatusCol" text="Status" prefWidth="120" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            
+        </TabPane>
+    </center>
+    
+    <bottom>
+        <HBox style="-fx-padding: 5; -fx-background-color: #f0f0f0;">
+            <Label fx:id="statusLabel" text="Ready" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="userInfoLabel" text="" />
+        </HBox>
+    </bottom>
+    
+</BorderPane>

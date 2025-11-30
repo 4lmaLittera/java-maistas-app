@@ -1,7 +1,9 @@
 package com.naujokaitis.maistas.model;
 
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,21 +11,32 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+@Entity
+@Table(name = "chat_threads")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatThread {
 
-    private final UUID id;
-    private final Order order;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    @OneToOne(mappedBy = "chatThread")
+    private Order order;
+
     @Getter(AccessLevel.NONE)
-    private final List<User> participants;
+    @ManyToMany
+    @JoinTable(name = "chat_participants", joinColumns = @JoinColumn(name = "chat_thread_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private List<User> participants = new ArrayList<>();
+
     @Getter(AccessLevel.NONE)
-    private final List<ChatMessage> messages;
+    @OneToMany(mappedBy = "chatThread", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChatMessage> messages = new ArrayList<>();
 
     public ChatThread(UUID id, Order order, List<User> participants) {
         this.id = Objects.requireNonNull(id, "id must not be null");
-        this.order = Objects.requireNonNull(order, "order must not be null");
+        this.order = order;
         this.participants = new ArrayList<>(Objects.requireNonNullElse(participants, List.of()));
-        this.messages = new ArrayList<>();
     }
 
     public List<User> getParticipants() {
@@ -42,4 +55,3 @@ public class ChatThread {
         messages.add(Objects.requireNonNull(message, "message must not be null"));
     }
 }
-

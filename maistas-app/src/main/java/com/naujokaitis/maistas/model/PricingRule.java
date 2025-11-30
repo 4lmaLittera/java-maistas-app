@@ -1,25 +1,42 @@
 package com.naujokaitis.maistas.model;
 
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
+@Entity
+@Table(name = "pricing_rules")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PricingRule {
 
-    private final UUID id;
-    private final String name;
-    private final TimeRange timeRange;
-    private final DemandLevel demandLevel;
-    private final double priceModifier;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Embedded
+    private TimeRange timeRange;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "demand_level", nullable = false)
+    private DemandLevel demandLevel;
+
+    @Column(name = "price_modifier", nullable = false)
+    private double priceModifier;
 
     public PricingRule(UUID id,
-                       String name,
-                       TimeRange timeRange,
-                       DemandLevel demandLevel,
-                       double priceModifier) {
+            String name,
+            TimeRange timeRange,
+            DemandLevel demandLevel,
+            double priceModifier) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.name = Objects.requireNonNull(name, "name must not be null");
         this.timeRange = Objects.requireNonNull(timeRange, "timeRange must not be null");
@@ -33,4 +50,3 @@ public class PricingRule {
         return basePrice.multiply(BigDecimal.valueOf(priceModifier));
     }
 }
-
