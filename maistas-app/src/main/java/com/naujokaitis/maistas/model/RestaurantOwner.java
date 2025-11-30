@@ -1,8 +1,9 @@
 package com.naujokaitis.maistas.model;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
+import jakarta.persistence.OneToMany;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,7 @@ import java.util.UUID;
 public class RestaurantOwner extends User {
 
     @Getter(AccessLevel.NONE)
-    @Transient
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Restaurant> managedRestaurants = new ArrayList<>();
 
     public RestaurantOwner(UUID id,

@@ -1,23 +1,46 @@
 package com.naujokaitis.maistas.model;
 
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
+@Entity
+@Table(name = "reviews")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Review {
 
-    private final UUID id;
-    private final User author;
-    private final User targetUser;
-    private final Restaurant targetRestaurant;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_user_id")
+    private User targetUser;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_restaurant_id")
+    private Restaurant targetRestaurant;
+
+    @Column(name = "rating", nullable = false)
     private int rating;
+
     @Setter
+    @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;
-    private final LocalDateTime createdAt;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     public Review(UUID id,
             User author,

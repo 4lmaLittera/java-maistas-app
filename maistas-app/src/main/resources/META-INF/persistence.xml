@@ -5,6 +5,23 @@
              version="3.0">
   <persistence-unit name="wolt">
     <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+    
+    <!-- Entity classes -->
+    <class>com.naujokaitis.maistas.model.User</class>
+    <class>com.naujokaitis.maistas.model.Client</class>
+    <class>com.naujokaitis.maistas.model.RestaurantOwner</class>
+    <class>com.naujokaitis.maistas.model.Driver</class>
+    <class>com.naujokaitis.maistas.model.Administrator</class>
+    <class>com.naujokaitis.maistas.model.Restaurant</class>
+    <class>com.naujokaitis.maistas.model.Menu</class>
+    <class>com.naujokaitis.maistas.model.MenuItem</class>
+    <class>com.naujokaitis.maistas.model.PricingRule</class>
+    <class>com.naujokaitis.maistas.model.Order</class>
+    <class>com.naujokaitis.maistas.model.OrderItem</class>
+    <class>com.naujokaitis.maistas.model.Review</class>
+    <class>com.naujokaitis.maistas.model.ChatThread</class>
+    <class>com.naujokaitis.maistas.model.ChatMessage</class>
+    
     <properties>
       <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
       <property name="jakarta.persistence.jdbc.url"

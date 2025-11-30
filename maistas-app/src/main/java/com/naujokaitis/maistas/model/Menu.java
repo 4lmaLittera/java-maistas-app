@@ -1,7 +1,9 @@
 package com.naujokaitis.maistas.model;
 
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,15 +11,23 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+@Entity
+@Table(name = "menus")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Menu {
 
-    private final UUID id;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
     @Getter(AccessLevel.NONE)
-    private final List<MenuItem> items;
+    @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MenuItem> items = new ArrayList<>();
 
     public Menu(UUID id) {
-        this(id, List.of());
+        this.id = Objects.requireNonNull(id, "id must not be null");
+        this.items = new ArrayList<>();
     }
 
     public Menu(UUID id, List<MenuItem> items) {

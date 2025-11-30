@@ -1,27 +1,30 @@
 package com.naujokaitis.maistas.model;
 
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
+import java.util.UUID;
 
+@Embeddable
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderStatusChange {
 
-    private final OrderStatus status;
-    private final LocalDateTime changedAt;
-    private final User changedBy;
-    private final String note;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private OrderStatus status;
 
-    public OrderStatusChange(OrderStatus status,
-                             LocalDateTime changedAt,
-                             User changedBy,
-                             String note) {
-        this.status = Objects.requireNonNull(status, "status must not be null");
-        this.changedAt = Objects.requireNonNullElse(changedAt, LocalDateTime.now());
-        this.changedBy = Objects.requireNonNull(changedBy, "changedBy must not be null");
-        this.note = note;
-    }
+    @Column(name = "changed_at")
+    private LocalDateTime changedAt;
+
+    @Column(name = "changed_by_id")
+    private UUID changedBy;
+
+    @Column(name = "note")
+    private String note;
 
 }
-
