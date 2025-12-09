@@ -5,6 +5,7 @@ import com.naujokaitis.maistas.database.GenericHibernate;
 import com.naujokaitis.maistas.model.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -42,11 +43,17 @@ public class MainViewController {
     @FXML
     private TableColumn<Restaurant, String> restaurantOwnerCol;
     @FXML
+    private TextField restaurantSearchField;
+    @FXML
+    private ComboBox<Integer> restaurantRatingFilter;
+    @FXML
     private Button addRestaurantBtn;
     @FXML
     private Button editRestaurantBtn;
     @FXML
     private Button deleteRestaurantBtn;
+    @FXML
+    private Button reviewsBtn;
 
     // Menus Tab
     @FXML
@@ -57,6 +64,8 @@ public class MainViewController {
     private TableColumn<com.naujokaitis.maistas.model.Menu, String> menuNameCol;
     @FXML
     private TableColumn<com.naujokaitis.maistas.model.Menu, Integer> menuItemCountCol;
+    @FXML
+    private ComboBox<Restaurant> menuRestaurantFilter;
     @FXML
     private Button addMenuBtn;
     @FXML
@@ -75,6 +84,10 @@ public class MainViewController {
     private TableColumn<com.naujokaitis.maistas.model.MenuItem, BigDecimal> menuItemPriceCol;
     @FXML
     private TableColumn<com.naujokaitis.maistas.model.MenuItem, Integer> menuItemInventoryCol;
+    @FXML
+    private ComboBox<com.naujokaitis.maistas.model.Menu> menuItemMenuFilter;
+    @FXML
+    private ComboBox<MenuCategory> menuItemCategoryFilter;
     @FXML
     private Button addMenuItemBtn;
     @FXML
@@ -105,6 +118,8 @@ public class MainViewController {
     private Button editOrderBtn;
     @FXML
     private Button deleteOrderBtn;
+    @FXML
+    private Button chatBtn;
 
     // Users Tab
     @FXML
@@ -117,6 +132,10 @@ public class MainViewController {
     private TableColumn<User, UserRole> userRoleCol;
     @FXML
     private TableColumn<User, UserStatus> userStatusCol;
+    @FXML
+    private TableColumn<User, String> userAvgRatingCol;
+    @FXML
+    private ComboBox<UserRole> userRoleFilter;
     @FXML
     private Button addUserBtn;
     @FXML
@@ -132,11 +151,20 @@ public class MainViewController {
 
     // Data storage
     private final ObservableList<Restaurant> restaurants = FXCollections.observableArrayList();
+    private final FilteredList<Restaurant> filteredRestaurants = new FilteredList<>(restaurants, p -> true);
+
     private final ObservableList<com.naujokaitis.maistas.model.Menu> menus = FXCollections.observableArrayList();
+    private final FilteredList<com.naujokaitis.maistas.model.Menu> filteredMenus = new FilteredList<>(menus, p -> true);
+
     private final ObservableList<com.naujokaitis.maistas.model.MenuItem> menuItems = FXCollections
             .observableArrayList();
+    private final FilteredList<com.naujokaitis.maistas.model.MenuItem> filteredMenuItems = new FilteredList<>(menuItems,
+            p -> true);
+
     private final ObservableList<Order> orders = FXCollections.observableArrayList();
+
     private final ObservableList<User> users = FXCollections.observableArrayList();
+    private final FilteredList<User> filteredUsers = new FilteredList<>(users, p -> true);
 
     // Database access
     private final GenericHibernate<Restaurant> restaurantRepo = new GenericHibernate<>(Restaurant.class);
@@ -150,10 +178,33 @@ public class MainViewController {
     @FXML
     private void initialize() {
         setupTables();
+        setupFilters();
         configureRoleBasedAccess();
         loadAllData();
         setupTableSelectionListeners();
         updateUserInfo();
+        setupTabChangeListener();
+    }
+
+    private void setupTabChangeListener() {
+        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            updateStatusForCurrentTab();
+        });
+    }
+
+    private void updateStatusForCurrentTab() {
+        Tab currentTab = mainTabPane.getSelectionModel().getSelectedItem();
+        if (currentTab == restaurantsTab) {
+            statusLabel.setText("Loaded " + restaurants.size() + " restaurants");
+        } else if (currentTab == menusTab) {
+            statusLabel.setText("Loaded " + menus.size() + " menus");
+        } else if (currentTab == menuItemsTab) {
+            statusLabel.setText("Loaded " + menuItems.size() + " menu items");
+        } else if (currentTab == ordersTab) {
+            statusLabel.setText("Loaded " + orders.size() + " orders");
+        } else if (currentTab == usersTab) {
+            statusLabel.setText("Loaded " + users.size() + " users");
+        }
     }
 
     private void setupTables() {
@@ -166,7 +217,7 @@ public class MainViewController {
             String ownerName = restaurant.getOwner() != null ? restaurant.getOwner().getUsername() : "N/A";
             return new javafx.beans.property.SimpleStringProperty(ownerName);
         });
-        restaurantsTable.setItems(restaurants);
+        restaurantsTable.setItems(filteredRestaurants);
 
         // Menus table
         menuNameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -175,14 +226,14 @@ public class MainViewController {
         menuItemCountCol.setCellValueFactory(
                 cellData -> new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getItems().size())
                         .asObject());
-        menusTable.setItems(menus);
+        menusTable.setItems(filteredMenus);
 
         // Menu Items table
         menuItemNameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
         menuItemCategoryCol.setCellValueFactory(new PropertyValueFactory<>("category"));
         menuItemPriceCol.setCellValueFactory(new PropertyValueFactory<>("price"));
         menuItemInventoryCol.setCellValueFactory(new PropertyValueFactory<>("inventoryCount"));
-        menuItemsTable.setItems(menuItems);
+        menuItemsTable.setItems(filteredMenuItems);
 
         // Orders table
         orderIdCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
@@ -201,10 +252,150 @@ public class MainViewController {
         userEmailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
         userRoleCol.setCellValueFactory(new PropertyValueFactory<>("role"));
         userStatusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
-        usersTable.setItems(users);
+        userAvgRatingCol.setCellValueFactory(cellData -> {
+            User user = cellData.getValue();
+            if (user instanceof RestaurantOwner) {
+                // Calculate average rating from owned restaurants
+                double avgRating = restaurants.stream()
+                        .filter(r -> r.getOwner() != null && r.getOwner().getId().equals(user.getId()))
+                        .filter(r -> r.getRating() != null)
+                        .mapToDouble(Restaurant::getRating)
+                        .average()
+                        .orElse(0.0);
+                if (avgRating > 0) {
+                    return new javafx.beans.property.SimpleStringProperty(String.format("%.1f", avgRating));
+                }
+                return new javafx.beans.property.SimpleStringProperty("No ratings");
+            }
+            return new javafx.beans.property.SimpleStringProperty("-");
+        });
+        usersTable.setItems(filteredUsers);
 
-        // Setup order status filter
-        orderStatusFilter.setItems(FXCollections.observableArrayList(OrderStatus.values()));
+        // Setup order status filter with "All" option (null represents all)
+        List<OrderStatus> statusOptions = new java.util.ArrayList<>();
+        statusOptions.add(null); // "All" option
+        statusOptions.addAll(java.util.Arrays.asList(OrderStatus.values()));
+        orderStatusFilter.setItems(FXCollections.observableArrayList(statusOptions));
+        orderStatusFilter.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(OrderStatus item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? null : (item == null ? "All" : item.toString()));
+            }
+        });
+        orderStatusFilter.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(OrderStatus item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? "All" : (item == null ? "All" : item.toString()));
+            }
+        });
+        orderStatusFilter.setValue(null); // Default to "All"
+    }
+
+    private void setupFilters() {
+        // Restaurant filters
+        restaurantRatingFilter.setItems(FXCollections.observableArrayList(1, 2, 3, 4, 5));
+
+        restaurantSearchField.textProperty().addListener((obs, oldVal, newVal) -> updateRestaurantFilter());
+        restaurantRatingFilter.valueProperty().addListener((obs, oldVal, newVal) -> updateRestaurantFilter());
+
+        // Menu restaurant filter
+        menuRestaurantFilter.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(Restaurant item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getName());
+            }
+        });
+        menuRestaurantFilter.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Restaurant item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "All Restaurants" : item.getName());
+            }
+        });
+        menuRestaurantFilter.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == null) {
+                filteredMenus.setPredicate(p -> true);
+            } else {
+                filteredMenus.setPredicate(menu -> {
+                    // Check if the restaurant has this menu
+                    return newVal.getMenu() != null && newVal.getMenu().getId().equals(menu.getId());
+                });
+            }
+        });
+
+        // Menu Item menu filter
+        menuItemMenuFilter.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(com.naujokaitis.maistas.model.Menu item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getName());
+            }
+        });
+        menuItemMenuFilter.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(com.naujokaitis.maistas.model.Menu item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "All Menus" : item.getName());
+            }
+        });
+        menuItemMenuFilter.valueProperty().addListener((obs, oldVal, newVal) -> updateMenuItemFilter());
+
+        // Menu Item filters
+        menuItemCategoryFilter.setItems(FXCollections.observableArrayList(MenuCategory.values()));
+        menuItemCategoryFilter.valueProperty().addListener((obs, oldVal, newVal) -> updateMenuItemFilter());
+
+        // User filters
+        userRoleFilter.setItems(FXCollections.observableArrayList(UserRole.values()));
+        userRoleFilter.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == null) {
+                filteredUsers.setPredicate(p -> true);
+            } else {
+                filteredUsers.setPredicate(user -> user.getRole() == newVal);
+            }
+        });
+    }
+
+    private void updateRestaurantFilter() {
+        String searchText = restaurantSearchField.getText();
+        Integer minRating = restaurantRatingFilter.getValue();
+
+        filteredRestaurants.setPredicate(restaurant -> {
+            boolean matchesName = true;
+            boolean matchesRating = true;
+
+            if (searchText != null && !searchText.isEmpty()) {
+                matchesName = restaurant.getName().toLowerCase().contains(searchText.toLowerCase());
+            }
+
+            if (minRating != null) {
+                matchesRating = restaurant.getRating() != null && restaurant.getRating() >= minRating;
+            }
+
+            return matchesName && matchesRating;
+        });
+    }
+
+    private void updateMenuItemFilter() {
+        com.naujokaitis.maistas.model.Menu selectedMenu = menuItemMenuFilter.getValue();
+        MenuCategory selectedCategory = menuItemCategoryFilter.getValue();
+
+        filteredMenuItems.setPredicate(item -> {
+            boolean matchesMenu = true;
+            boolean matchesCategory = true;
+
+            if (selectedMenu != null) {
+                matchesMenu = item.getMenu() != null && item.getMenu().getId().equals(selectedMenu.getId());
+            }
+
+            if (selectedCategory != null) {
+                matchesCategory = item.getCategory() == selectedCategory;
+            }
+
+            return matchesMenu && matchesCategory;
+        });
     }
 
     private void configureRoleBasedAccess() {
@@ -243,6 +434,7 @@ public class MainViewController {
             boolean selected = newVal != null;
             editRestaurantBtn.setDisable(!selected);
             deleteRestaurantBtn.setDisable(!selected);
+            reviewsBtn.setDisable(!selected);
         });
 
         menusTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -261,6 +453,7 @@ public class MainViewController {
             boolean selected = newVal != null;
             editOrderBtn.setDisable(!selected);
             deleteOrderBtn.setDisable(!selected);
+            chatBtn.setDisable(!selected);
         });
 
         usersTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -313,6 +506,18 @@ public class MainViewController {
             List<Restaurant> data = restaurantRepo.findAll();
             restaurants.clear();
             restaurants.addAll(data);
+
+            // Update the menu restaurant filter ComboBox
+            Restaurant selectedFilter = menuRestaurantFilter.getValue();
+            menuRestaurantFilter.setItems(FXCollections.observableArrayList(data));
+            if (selectedFilter != null) {
+                // Try to re-select the same restaurant
+                data.stream()
+                        .filter(r -> r.getId().equals(selectedFilter.getId()))
+                        .findFirst()
+                        .ifPresent(menuRestaurantFilter::setValue);
+            }
+
             statusLabel.setText("Loaded " + data.size() + " restaurants");
         } catch (Exception e) {
             showError("Load Error", "Failed to load restaurants", e.getMessage());
@@ -373,6 +578,15 @@ public class MainViewController {
         });
     }
 
+    @FXML
+    private void handleShowReviews() {
+        Restaurant selected = restaurantsTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        new ReviewDialog(selected).showAndWait();
+    }
+
     // Menu actions
     @FXML
     private void handleRefreshMenus() {
@@ -380,6 +594,18 @@ public class MainViewController {
             List<com.naujokaitis.maistas.model.Menu> data = menuRepo.findAll();
             menus.clear();
             menus.addAll(data);
+
+            // Update the menu item menu filter ComboBox
+            com.naujokaitis.maistas.model.Menu selectedFilter = menuItemMenuFilter.getValue();
+            menuItemMenuFilter.setItems(FXCollections.observableArrayList(data));
+            if (selectedFilter != null) {
+                // Try to re-select the same menu
+                data.stream()
+                        .filter(m -> m.getId().equals(selectedFilter.getId()))
+                        .findFirst()
+                        .ifPresent(menuItemMenuFilter::setValue);
+            }
+
             statusLabel.setText("Loaded " + data.size() + " menus");
         } catch (Exception e) {
             showError("Load Error", "Failed to load menus", e.getMessage());
@@ -593,6 +819,15 @@ public class MainViewController {
                 }
             }
         });
+    }
+
+    @FXML
+    private void handleChat() {
+        Order selected = ordersTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        new ChatDialog(selected).showAndWait();
     }
 
     // User actions

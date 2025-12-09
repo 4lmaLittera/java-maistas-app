@@ -1,14 +1,16 @@
 package com.naujokaitis.maistas.controller;
 
+import com.naujokaitis.maistas.database.CustomHibernate;
 import com.naujokaitis.maistas.database.GenericHibernate;
-import com.naujokaitis.maistas.model.Restaurant;
-import com.naujokaitis.maistas.model.RestaurantOwner;
-import com.naujokaitis.maistas.model.Session;
+import com.naujokaitis.maistas.model.*;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,14 +20,23 @@ public class RestaurantDialog extends Dialog<Restaurant> {
     private final TextField nameField;
     private final TextField addressField;
     private final TextArea descriptionArea;
-    private final TextField ratingField;
+    private final Label ratingLabel;
     private final ComboBox<RestaurantOwner> ownerComboBox;
+
+    // New fields for schedule and pricing
+    private OperatingSchedule operatingSchedule;
+    private final List<PricingRule> pricingRules = new ArrayList<>();
+    private final ListView<PricingRule> pricingRulesList;
 
     private final GenericHibernate<RestaurantOwner> ownerRepo = new GenericHibernate<>(RestaurantOwner.class);
     private Restaurant existingRestaurant;
 
     public RestaurantDialog(Restaurant restaurant) {
         this.existingRestaurant = restaurant;
+        if (restaurant != null) {
+            this.operatingSchedule = restaurant.getOperatingHours();
+            this.pricingRules.addAll(restaurant.getPricingRules());
+        }
 
         setTitle(restaurant == null ? "Add Restaurant" : "Edit Restaurant");
         setHeaderText(restaurant == null ? "Enter restaurant details" : "Update restaurant details");
@@ -41,18 +52,28 @@ public class RestaurantDialog extends Dialog<Restaurant> {
         descriptionArea.setPromptText("Description (optional)");
         descriptionArea.setPrefRowCount(3);
 
-        ratingField = new TextField();
-        ratingField.setPromptText("Rating (0-5, optional)");
+        ratingLabel = new Label("(Calculated from reviews)");
+        ratingLabel.setStyle("-fx-text-fill: #666;");
 
         ownerComboBox = new ComboBox<>();
         ownerComboBox.setPromptText("Select owner");
         loadOwners();
 
-        // Setup grid layout
+        // Pricing Rules List
+        pricingRulesList = new ListView<>();
+        pricingRulesList.setPrefHeight(100);
+        updatePricingRulesList();
+
+        // Setup TabPane
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+        // Tab 1: General Info
+        Tab generalTab = new Tab("General Info");
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        grid.setPadding(new Insets(20, 20, 10, 10));
 
         grid.add(new Label("Name:*"), 0, 0);
         grid.add(nameField, 1, 0);
@@ -64,12 +85,60 @@ public class RestaurantDialog extends Dialog<Restaurant> {
         grid.add(descriptionArea, 1, 2);
 
         grid.add(new Label("Rating:"), 0, 3);
-        grid.add(ratingField, 1, 3);
+        grid.add(ratingLabel, 1, 3);
 
         grid.add(new Label("Owner:*"), 0, 4);
         grid.add(ownerComboBox, 1, 4);
 
-        getDialogPane().setContent(grid);
+        generalTab.setContent(grid);
+
+        // Tab 2: Operating Hours & Pricing
+        Tab advancedTab = new Tab("Schedule & Pricing");
+        VBox advancedBox = new VBox(10);
+        advancedBox.setPadding(new Insets(20));
+
+        // Operating Hours Section
+        Label scheduleLabel = new Label("Operating Hours");
+        scheduleLabel.setStyle("-fx-font-weight: bold");
+        Button scheduleBtn = new Button("Manage Operating Hours");
+        scheduleBtn.setOnAction(e -> {
+            new OperatingHoursDialog(operatingSchedule).showAndWait().ifPresent(schedule -> {
+                this.operatingSchedule = schedule;
+            });
+        });
+
+        // Pricing Rules Section
+        Label pricingLabel = new Label("Dynamic Pricing Rules");
+        pricingLabel.setStyle("-fx-font-weight: bold");
+
+        HBox pricingButtons = new HBox(10);
+        Button addRuleBtn = new Button("Add Rule");
+        addRuleBtn.setOnAction(e -> {
+            new PricingRuleDialog(null).showAndWait().ifPresent(rule -> {
+                pricingRules.add(rule);
+                updatePricingRulesList();
+            });
+        });
+
+        Button removeRuleBtn = new Button("Remove Rule");
+        removeRuleBtn.setOnAction(e -> {
+            PricingRule selected = pricingRulesList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                pricingRules.remove(selected);
+                updatePricingRulesList();
+            }
+        });
+
+        pricingButtons.getChildren().addAll(addRuleBtn, removeRuleBtn);
+
+        advancedBox.getChildren().addAll(
+                scheduleLabel, scheduleBtn,
+                new Separator(),
+                pricingLabel, pricingRulesList, pricingButtons);
+        advancedTab.setContent(advancedBox);
+
+        tabPane.getTabs().addAll(generalTab, advancedTab);
+        getDialogPane().setContent(tabPane);
 
         // Add buttons
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
@@ -89,10 +158,16 @@ public class RestaurantDialog extends Dialog<Restaurant> {
             addressField.setText(restaurant.getAddress());
             descriptionArea.setText(restaurant.getDescription());
             if (restaurant.getRating() != null) {
-                ratingField.setText(restaurant.getRating().toString());
+                ratingLabel.setText(String.format("%.1f / 5.0 (from reviews)", restaurant.getRating()));
+            } else {
+                ratingLabel.setText("No reviews yet");
             }
             if (restaurant.getOwner() != null) {
-                ownerComboBox.getSelectionModel().select(restaurant.getOwner());
+                // Find matching owner from loaded list by ID to avoid Hibernate proxy issues
+                ownerComboBox.getItems().stream()
+                        .filter(owner -> owner.getId().equals(restaurant.getOwner().getId()))
+                        .findFirst()
+                        .ifPresent(ownerComboBox.getSelectionModel()::select);
             }
         } else {
             // For new restaurant, auto-select current user if they're an owner
@@ -110,6 +185,25 @@ public class RestaurantDialog extends Dialog<Restaurant> {
                 return createRestaurant();
             }
             return null;
+        });
+    }
+
+    private void updatePricingRulesList() {
+        pricingRulesList.setItems(FXCollections.observableArrayList(pricingRules));
+        pricingRulesList.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(PricingRule rule, boolean empty) {
+                super.updateItem(rule, empty);
+                if (empty || rule == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%s (%s-%s) x%.2f",
+                            rule.getName(),
+                            rule.getTimeRange().getStartTime(),
+                            rule.getTimeRange().getEndTime(),
+                            rule.getPriceModifier()));
+                }
+            }
         });
     }
 
@@ -149,20 +243,7 @@ public class RestaurantDialog extends Dialog<Restaurant> {
             return false;
         }
 
-        // Validate rating if provided
-        String ratingText = ratingField.getText();
-        if (ratingText != null && !ratingText.trim().isEmpty()) {
-            try {
-                double rating = Double.parseDouble(ratingText);
-                if (rating < 0 || rating > 5) {
-                    showError("Rating must be between 0 and 5");
-                    return false;
-                }
-            } catch (NumberFormatException e) {
-                showError("Rating must be a valid number");
-                return false;
-            }
-        }
+        // Rating is now calculated from reviews, no validation needed
 
         // Validate owner
         if (ownerComboBox.getValue() == null) {
@@ -177,12 +258,7 @@ public class RestaurantDialog extends Dialog<Restaurant> {
         String name = nameField.getText().trim();
         String address = addressField.getText().trim();
         String description = descriptionArea.getText();
-        Double rating = null;
-
-        String ratingText = ratingField.getText();
-        if (ratingText != null && !ratingText.trim().isEmpty()) {
-            rating = Double.parseDouble(ratingText);
-        }
+        // Rating is now calculated from reviews, not set manually
 
         RestaurantOwner owner = ownerComboBox.getValue();
 
@@ -191,22 +267,51 @@ public class RestaurantDialog extends Dialog<Restaurant> {
             existingRestaurant.setName(name);
             existingRestaurant.setAddress(address);
             existingRestaurant.setDescription(description);
-            existingRestaurant.setRating(rating);
+            // Rating is calculated from reviews, don't overwrite it
             existingRestaurant.setOwner(owner);
+            existingRestaurant.setOperatingHours(operatingSchedule);
+
+            // Update pricing rules
+            // Clear existing and add new ones to maintain the collection reference if
+            // possible,
+            // but since we don't have clear() on the list exposed, we might need to handle
+            // it differently.
+            // However, we passed the list to the constructor, so we can just rely on the
+            // fact that we modified the list in the dialog?
+            // No, existingRestaurant.getPricingRules() returns unmodifiable list.
+            // We need to use add/remove methods or reflection if we want to be hacky, but
+            // let's use the proper methods.
+
+            // Actually, since we can't easily clear the list via public API, let's assume
+            // for now we just replace the list via reflection or add a setter in Restaurant
+            // if needed.
+            // But wait, Restaurant has:
+            // private List<PricingRule> pricingRules = new ArrayList<>();
+            // and NO setter for it.
+            // It has addPricingRule and removePricingRule.
+
+            // Let's try to sync them.
+            List<PricingRule> currentRules = new ArrayList<>(existingRestaurant.getPricingRules());
+            for (PricingRule rule : currentRules) {
+                existingRestaurant.removePricingRule(rule);
+            }
+            for (PricingRule rule : pricingRules) {
+                existingRestaurant.addPricingRule(rule);
+            }
+
             return existingRestaurant;
         } else {
-            // Create new
+            // Create new - rating starts as null, will be calculated from reviews
             return new Restaurant(
                     UUID.randomUUID(),
                     name,
                     address,
                     description,
-                    rating,
-                    null, // operatingHours
+                    null, // rating calculated from reviews
+                    operatingSchedule,
                     null, // menu
                     owner,
-                    List.of() // pricingRules
-            );
+                    pricingRules);
         }
     }
 
@@ -224,7 +329,14 @@ public class RestaurantDialog extends Dialog<Restaurant> {
     }
 
     public static Optional<Restaurant> showEditDialog(Restaurant restaurant) {
-        RestaurantDialog dialog = new RestaurantDialog(restaurant);
+        RestaurantDialog dialog;
+        if (restaurant != null && restaurant.getId() != null) {
+            CustomHibernate customHibernate = new CustomHibernate();
+            Restaurant reloaded = customHibernate.findRestaurantWithPricingRules(restaurant.getId());
+            dialog = new RestaurantDialog(reloaded != null ? reloaded : restaurant);
+        } else {
+            dialog = new RestaurantDialog(restaurant);
+        }
         return dialog.showAndWait();
     }
 }

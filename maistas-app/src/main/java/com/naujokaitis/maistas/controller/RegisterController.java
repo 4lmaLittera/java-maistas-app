@@ -50,11 +50,19 @@ public class RegisterController {
     private PasswordField confirmPasswordField1;
 
     @FXML
+    private Button backButton;
+
+    @FXML
+    private Button backButton1;
+
+    @FXML
     private void initialize() {
         registerButton.setOnAction(event -> register());
         if (registerButton1 != null) {
             registerButton1.setOnAction(event -> register());
         }
+        backButton.setOnAction(event -> back());
+        backButton1.setOnAction(event -> back());
     }
 
     private void register() {
@@ -193,5 +201,13 @@ public class RegisterController {
             return false;
         }
         return true;
+    }
+
+    private void back() {
+        try {
+            App.showInitialView();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

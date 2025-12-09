@@ -17,6 +17,9 @@ public class LoginController {
     private Button loginButton;
 
     @FXML
+    private Button backButton;
+
+    @FXML
     private TextField usernameField;
     @FXML
     private PasswordField passwordField;
@@ -24,6 +27,7 @@ public class LoginController {
     @FXML
     private void initialize() {
         loginButton.setOnAction(event -> login());
+        backButton.setOnAction(event -> back());
     }
 
     private void login() {
@@ -56,6 +60,14 @@ public class LoginController {
             alert.setHeaderText(null);
             alert.setContentText("Invalid password or username");
             alert.showAndWait();
+        }
+    }
+
+    private void back() {
+        try {
+            App.showInitialView();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

@@ -2,6 +2,7 @@ package com.naujokaitis.maistas.database;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+import org.hibernate.Hibernate;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -21,7 +22,11 @@ public class GenericHibernate<T> {
     public T find(Object id) {
         EntityManager em = JpaUtil.getEntityManager();
         try {
-            return em.find(entityClass, id);
+            T entity = em.find(entityClass, id);
+            if (entity != null) {
+                Hibernate.initialize(entity);
+            }
+            return entity;
         } finally {
             em.close();
         }
@@ -56,7 +61,12 @@ public class GenericHibernate<T> {
         EntityManager em = JpaUtil.getEntityManager();
         try {
             String ql = "SELECT e FROM " + entityClass.getSimpleName() + " e";
-            return em.createQuery(ql, entityClass).getResultList();
+            List<T> results = em.createQuery(ql, entityClass).getResultList();
+            // Initialize proxies to avoid LazyInitializationException
+            for (T entity : results) {
+                Hibernate.initialize(entity);
+            }
+            return results;
         } finally {
             em.close();
         }

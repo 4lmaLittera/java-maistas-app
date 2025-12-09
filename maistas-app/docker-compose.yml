@@ -1,10 +1,8 @@
-version: '3.8'
 
 services:
   mysql:
     image: mysql:8.0
     container_name: maistas_mysql
-    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: maistas_db
@@ -25,7 +23,6 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: maistas_phpmyadmin
-    restart: always
     depends_on:
       mysql:
         condition: service_healthy

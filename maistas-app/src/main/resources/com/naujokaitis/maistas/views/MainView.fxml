@@ -5,7 +5,7 @@
 
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
             fx:controller="com.naujokaitis.maistas.controller.MainViewController"
-            prefHeight="700.0" prefWidth="1000.0">
+            prefHeight="720.0" prefWidth="1280.0">
     
     <top>
         <MenuBar>
@@ -25,10 +25,16 @@
                 <content>
                     <VBox spacing="10" style="-fx-padding: 10;">
                         <!-- Toolbar -->
-                        <HBox spacing="10">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
                             <Button fx:id="addRestaurantBtn" text="Add Restaurant" onAction="#handleAddRestaurant" />
                             <Button fx:id="editRestaurantBtn" text="Edit Restaurant" onAction="#handleEditRestaurant" disable="true" />
                             <Button fx:id="deleteRestaurantBtn" text="Delete Restaurant" onAction="#handleDeleteRestaurant" disable="true" />
+                            <Button fx:id="reviewsBtn" text="Reviews" onAction="#handleShowReviews" disable="true" />
+                            <Separator orientation="VERTICAL" />
+                            <Label text="Search:" />
+                            <TextField fx:id="restaurantSearchField" promptText="Name..." prefWidth="150" />
+                            <Label text="Min Rating:" />
+                            <ComboBox fx:id="restaurantRatingFilter" prefWidth="80" />
                             <Region HBox.hgrow="ALWAYS" />
                             <Button text="Refresh" onAction="#handleRefreshRestaurants" />
                         </HBox>
@@ -50,10 +56,13 @@
             <Tab fx:id="menusTab" text="Menus">
                 <content>
                     <VBox spacing="10" style="-fx-padding: 10;">
-                        <HBox spacing="10">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
                             <Button fx:id="addMenuBtn" text="Create Menu" onAction="#handleAddMenu" />
                             <Button fx:id="editMenuBtn" text="Edit Menu" onAction="#handleEditMenu" disable="true" />
                             <Button fx:id="deleteMenuBtn" text="Delete Menu" onAction="#handleDeleteMenu" disable="true" />
+                            <Separator orientation="VERTICAL" />
+                            <Label text="Restaurant:" />
+                            <ComboBox fx:id="menuRestaurantFilter" promptText="All Restaurants" prefWidth="200" />
                             <Region HBox.hgrow="ALWAYS" />
                             <Button text="Refresh" onAction="#handleRefreshMenus" />
                         </HBox>
@@ -73,10 +82,15 @@
             <Tab fx:id="menuItemsTab" text="Menu Items">
                 <content>
                     <VBox spacing="10" style="-fx-padding: 10;">
-                        <HBox spacing="10">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
                             <Button fx:id="addMenuItemBtn" text="Add Menu Item" onAction="#handleAddMenuItem" />
                             <Button fx:id="editMenuItemBtn" text="Edit Menu Item" onAction="#handleEditMenuItem" disable="true" />
                             <Button fx:id="deleteMenuItemBtn" text="Delete Menu Item" onAction="#handleDeleteMenuItem" disable="true" />
+                            <Separator orientation="VERTICAL" />
+                            <Label text="Menu:" />
+                            <ComboBox fx:id="menuItemMenuFilter" promptText="All Menus" prefWidth="180" />
+                            <Label text="Category:" />
+                            <ComboBox fx:id="menuItemCategoryFilter" promptText="All" prefWidth="120" />
                             <Region HBox.hgrow="ALWAYS" />
                             <Button text="Refresh" onAction="#handleRefreshMenuItems" />
                         </HBox>
@@ -101,6 +115,7 @@
                             <Button fx:id="addOrderBtn" text="Create Order" onAction="#handleAddOrder" />
                             <Button fx:id="editOrderBtn" text="Change Status" onAction="#handleEditOrder" disable="true" />
                             <Button fx:id="deleteOrderBtn" text="Delete Order" onAction="#handleDeleteOrder" disable="true" />
+                            <Button fx:id="chatBtn" text="Chat" onAction="#handleChat" disable="true" />
                             <Separator orientation="VERTICAL" />
                             <Label text="Filter:" />
                             <ComboBox fx:id="orderStatusFilter" promptText="All" />
@@ -127,10 +142,13 @@
             <Tab fx:id="usersTab" text="Users">
                 <content>
                     <VBox spacing="10" style="-fx-padding: 10;">
-                        <HBox spacing="10">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
                             <Button fx:id="addUserBtn" text="Add User" onAction="#handleAddUser" />
                             <Button fx:id="editUserBtn" text="Edit User" onAction="#handleEditUser" disable="true" />
                             <Button fx:id="deleteUserBtn" text="Delete User" onAction="#handleDeleteUser" disable="true" />
+                            <Separator orientation="VERTICAL" />
+                            <Label text="Role:" />
+                            <ComboBox fx:id="userRoleFilter" promptText="All" prefWidth="150" />
                             <Region HBox.hgrow="ALWAYS" />
                             <Button text="Refresh" onAction="#handleRefreshUsers" />
                         </HBox>
@@ -141,6 +159,7 @@
                                 <TableColumn fx:id="userEmailCol" text="Email" prefWidth="200" />
                                 <TableColumn fx:id="userRoleCol" text="Role" prefWidth="120" />
                                 <TableColumn fx:id="userStatusCol" text="Status" prefWidth="120" />
+                                <TableColumn fx:id="userAvgRatingCol" text="Avg Rating" prefWidth="100" />
                             </columns>
                         </TableView>
                     </VBox>

@@ -99,9 +99,7 @@ public class MenuItemDialog extends Dialog<com.naujokaitis.maistas.model.MenuIte
             priceField.setText(menuItem.getPrice().toString());
             categoryComboBox.getSelectionModel().select(menuItem.getCategory());
             inventoryField.setText(String.valueOf(menuItem.getInventoryCount()));
-            if (menuItem.getMenu() != null) {
-                menuComboBox.getSelectionModel().select(menuItem.getMenu());
-            }
+            // Menu selection is handled in loadMenus()
         }
 
         // Convert result
@@ -121,16 +119,43 @@ public class MenuItemDialog extends Dialog<com.naujokaitis.maistas.model.MenuIte
                 @Override
                 protected void updateItem(Menu menu, boolean empty) {
                     super.updateItem(menu, empty);
-                    setText(empty || menu == null ? null : "Menu ID: " + menu.getId().toString().substring(0, 8));
+                    if (empty || menu == null) {
+                        setText(null);
+                    } else {
+                        try {
+                            String name = menu.getName();
+                            setText(name != null ? name : "Menu ID: " + menu.getId().toString().substring(0, 8));
+                        } catch (Exception e) {
+                            setText("Menu ID: " + menu.getId().toString().substring(0, 8));
+                        }
+                    }
                 }
             });
             menuComboBox.setButtonCell(new ListCell<>() {
                 @Override
                 protected void updateItem(Menu menu, boolean empty) {
                     super.updateItem(menu, empty);
-                    setText(empty || menu == null ? null : "Menu ID: " + menu.getId().toString().substring(0, 8));
+                    if (empty || menu == null) {
+                        setText(null);
+                    } else {
+                        try {
+                            String name = menu.getName();
+                            setText(name != null ? name : "Menu ID: " + menu.getId().toString().substring(0, 8));
+                        } catch (Exception e) {
+                            setText("Menu ID: " + menu.getId().toString().substring(0, 8));
+                        }
+                    }
                 }
             });
+
+            // Pre-select menu if editing and menu exists
+            if (existingMenuItem != null && existingMenuItem.getMenu() != null) {
+                UUID menuId = existingMenuItem.getMenu().getId();
+                menus.stream()
+                        .filter(m -> m.getId().equals(menuId))
+                        .findFirst()
+                        .ifPresent(menuComboBox.getSelectionModel()::select);
+            }
         } catch (Exception e) {
             showError("Failed to load menus: " + e.getMessage());
         }
