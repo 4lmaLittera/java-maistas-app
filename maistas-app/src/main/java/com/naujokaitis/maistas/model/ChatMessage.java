@@ -23,6 +23,7 @@ public class ChatMessage {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    @lombok.Setter
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 

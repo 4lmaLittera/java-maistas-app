@@ -65,12 +65,26 @@ public class ChatDialog extends Dialog<Void> {
                     if (currentUser != null && msg.getAuthor().getId().equals(currentUser.getId())) {
                         box.setAlignment(Pos.CENTER_RIGHT);
                         authorLabel.setAlignment(Pos.CENTER_RIGHT);
-                        contentLabel
-                                .setStyle("-fx-background-color: #e3f2fd; -fx-padding: 5; -fx-background-radius: 5;");
+                        contentLabel.setStyle("-fx-background-color: #e3f2fd; -fx-padding: 5; -fx-background-radius: 5;");
+                        
+                        // Edit/Delete buttons
+                        HBox actions = new HBox(5);
+                        actions.setAlignment(Pos.CENTER_RIGHT);
+                        
+                        Hyperlink editLink = new Hyperlink("Edit");
+                        editLink.setStyle("-fx-font-size: 9px;");
+                        editLink.setOnAction(e -> handleEditMessage(msg));
+                        
+                        Hyperlink deleteLink = new Hyperlink("Delete");
+                        deleteLink.setStyle("-fx-font-size: 9px; -fx-text-fill: red;");
+                        deleteLink.setOnAction(e -> handleDeleteMessage(msg));
+                        
+                        actions.getChildren().addAll(editLink, deleteLink);
+                        box.getChildren().add(actions);
+                        
                     } else {
                         box.setAlignment(Pos.CENTER_LEFT);
-                        contentLabel
-                                .setStyle("-fx-background-color: #f5f5f5; -fx-padding: 5; -fx-background-radius: 5;");
+                        contentLabel.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 5; -fx-background-radius: 5;");
                     }
                     setGraphic(box);
                 }
@@ -162,5 +176,49 @@ public class ChatDialog extends Dialog<Void> {
             alert.setContentText("Failed to send message: " + e.getMessage());
             alert.show();
         }
+    }
+
+
+    private void handleEditMessage(ChatMessage msg) {
+        TextInputDialog dialog = new TextInputDialog(msg.getContent());
+        dialog.setTitle("Edit Message");
+        dialog.setHeaderText("Edit your message:");
+        dialog.setContentText("Message:");
+
+        dialog.showAndWait().ifPresent(newContent -> {
+            if (!newContent.trim().isEmpty() && !newContent.equals(msg.getContent())) {
+                msg.setContent(newContent.trim());
+                try {
+                    messageRepo.update(msg);
+                    refreshMessages();
+                } catch (Exception e) {
+                    showAlert("Failed to update message: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void handleDeleteMessage(ChatMessage msg) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Message");
+        alert.setHeaderText("Are you sure you want to delete this message?");
+        alert.setContentText("This cannot be undone.");
+
+        alert.showAndWait().ifPresent(type -> {
+            if (type == ButtonType.OK) {
+                try {
+                    messageRepo.delete(msg);
+                    refreshMessages();
+                } catch (Exception e) {
+                    showAlert("Failed to delete message: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void showAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(message);
+        alert.show();
     }
 }
