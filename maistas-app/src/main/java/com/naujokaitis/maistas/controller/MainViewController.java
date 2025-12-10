@@ -58,6 +58,8 @@ public class MainViewController {
     private Button deleteRestaurantBtn;
     @FXML
     private Button reviewsBtn;
+    @FXML
+    private Button viewMenuBtn;
 
     // Menus Tab
     @FXML
@@ -437,24 +439,63 @@ public class MainViewController {
             case RESTAURANT_OWNER:
                 // Owner sees restaurants, menu items, orders
                 mainTabPane.getTabs().remove(usersTab);
+                
+                // Restaurant Owner constraints - cannot add new restaurants freely (?) 
+                // Leaving addRestaurantBtn visible for now as they might want to register another branch.
+                // But they definitely shouldn't see USER management buttons if they were somehow on that tab.
                 break;
             case CLIENT:
                 // Client sees only restaurants and their orders
-                mainTabPane.getTabs().removeAll(menuItemsTab, usersTab);
-                addRestaurantBtn.setVisible(false);
-                editRestaurantBtn.setVisible(false);
-                deleteRestaurantBtn.setVisible(false);
+                // REMOVE MENUS TAB - Clients browse via Restaurants -> Menu Items (in Order Dialog)
+                mainTabPane.getTabs().removeAll(menusTab, menuItemsTab, usersTab);
                 
-                // Client cannot change status or delete orders
+                // Hide Restaurant management buttons
+                addRestaurantBtn.setVisible(false);
+                addRestaurantBtn.setManaged(false);
+                editRestaurantBtn.setVisible(false);
+                editRestaurantBtn.setManaged(false);
+                deleteRestaurantBtn.setVisible(false);
+                deleteRestaurantBtn.setManaged(false);
+                
+                // Hide Menu management buttons (though tab is gone)
+                addMenuBtn.setVisible(false);
+                addMenuBtn.setManaged(false);
+                
+                // Hide Order management buttons
                 editOrderBtn.setVisible(false);
-                editOrderBtn.setManaged(false);
+                editOrderBtn.setManaged(false); // They can use "View" but here we hide the main edit button. 
+                // Actually they need to see "Edit" to view status? No, Edit is for changes.
+                // We enabled read-only view in Edit dialog. So maybe we should SHOW it but call it "View Order"?
+                // The requirements say "User can edit and see menus?". 
+                // Let's keep Edit button hidden for Client as per previous logic, assuming they don't edit orders after placement.
+                // Wait, if they can't click Edit, they can't see the status details dialog?
+                // They can see status in the table column.
+                
                 deleteOrderBtn.setVisible(false);
                 deleteOrderBtn.setManaged(false);
                 break;
             case DRIVER:
                 // Driver sees only orders
-                mainTabPane.getTabs().removeAll(restaurantsTab, menuItemsTab, usersTab);
+                mainTabPane.getTabs().removeAll(restaurantsTab, menusTab, menuItemsTab, usersTab);
+                
+                // Driver cannot create or delete orders
+                addOrderBtn.setVisible(false);
+                addOrderBtn.setManaged(false);
+                deleteOrderBtn.setVisible(false);
+                deleteOrderBtn.setManaged(false);
                 break;
+        }
+        
+        // Ensure viewMenuBtn is managed properly
+        if (role == UserRole.DRIVER) {
+             viewMenuBtn.setVisible(false);
+             viewMenuBtn.setManaged(false);
+        } else {
+             // Visible for Admin, Owner, Client (if restaurant selected)
+             viewMenuBtn.setVisible(true);
+             viewMenuBtn.setManaged(true);
+             // Initial state disable until selection
+             viewMenuBtn.setDisable(true);
         }
     }
 
@@ -464,6 +505,7 @@ public class MainViewController {
             editRestaurantBtn.setDisable(!selected);
             deleteRestaurantBtn.setDisable(!selected);
             reviewsBtn.setDisable(!selected);
+            viewMenuBtn.setDisable(!selected);
         });
 
         menusTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -523,12 +565,48 @@ public class MainViewController {
     private void updateUserInfo() {
         User currentUser = Session.getInstance().getCurrentUser();
         if (currentUser != null) {
-            userInfoLabel.setText("Logged in as: " + currentUser.getUsername() +
-                    " (" + currentUser.getRole() + ")");
+            String info = "Logged in as: " + currentUser.getUsername() + " (" + currentUser.getRole() + ")";
+            
+            if (currentUser instanceof Client) {
+                Client client = (Client) currentUser;
+                // Calculate tier dynamically using the transient wrapper if needed, or just display points
+                // Ideally, we'd use the LoyaltyAccount logic, but for simple display:
+                LoyaltyAccount account = new LoyaltyAccount(client, client.getLoyaltyPoints(), LoyaltyTier.BRONZE); 
+                // Constructor recalculates tier based on points
+                
+                info += " | Points: " + client.getLoyaltyPoints() + " | Tier: " + account.getTier();
+            }
+            
+            userInfoLabel.setText(info);
         }
     }
 
     // Menu actions
+    @FXML
+    private void handleProfile() {
+        User currentUser = Session.getInstance().getCurrentUser();
+        if (currentUser == null)
+            return;
+
+        // Refresh user from DB to get latest balance/data
+        User freshUser = userRepo.find(currentUser.getId());
+        if (freshUser != null) {
+             Session.getInstance().setCurrentUser(freshUser);
+             currentUser = freshUser;
+        }
+
+        UserDialog.showEditDialog(currentUser).ifPresent(updatedUser -> {
+            try {
+                userRepo.update(updatedUser);
+                Session.getInstance().setCurrentUser(updatedUser); // Update session with latest state
+                updateUserInfo();
+                statusLabel.setText("Profile updated successfully");
+            } catch (Exception e) {
+                showError("Update Error", "Failed to update profile", e.getMessage());
+            }
+        });
+    }
+
     @FXML
     private void handleLogout() {
         Session.getInstance().setCurrentUser(null);
@@ -634,6 +712,15 @@ public class MainViewController {
             return;
 
         new ReviewDialog(selected).showAndWait();
+    }
+
+    @FXML
+    private void handleViewMenu() {
+        Restaurant selected = restaurantsTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        new MenuViewerDialog(selected).showAndWait();
     }
 
     // Menu actions
@@ -817,6 +904,17 @@ public class MainViewController {
     private void handleAddOrder() {
         OrderDialog.showCreateDialog().ifPresent(order -> {
             try {
+                if (order.getPaymentType() == PaymentType.WALLET) {
+                    Client client = order.getClient();
+                    client.setWalletBalance(client.getWalletBalance().subtract(order.getTotalPrice())); // Basic check done in dialog, trusting it or should double check? Dialog check is UI, double check here is safe.
+                    // But wait, order.getTotalPrice() is calculated from items.
+                    // Let's re-verify balance to be safe against race conditions or UI bypass.
+                    if (client.getWalletBalance().compareTo(BigDecimal.ZERO) < 0) {
+                        throw new IllegalStateException("Insufficient wallet funds");
+                    }
+                    userRepo.update(client); // Persist new balance
+                }
+                
                 orderRepo.save(order);
                 orders.add(order);
                 statusLabel.setText("Order created successfully");

@@ -38,5 +38,37 @@
             </AnchorPane>
          </content>
       </Tab>
+      <Tab text="Client">
+         <content>
+            <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <Button fx:id="backButton2" layoutX="10.0" layoutY="10.0" mnemonicParsing="false" text="Back" />
+                  <TextField fx:id="usernameField2" layoutX="30.0" layoutY="60.0" promptText="Username" />
+                  <TextField fx:id="emailField2" layoutX="30.0" layoutY="90.0" promptText="Email" />
+                  <TextField fx:id="phoneField2" layoutX="30.0" layoutY="120.0" promptText="Phone number" />
+                  <TextField fx:id="addressField2" layoutX="30.0" layoutY="150.0" promptText="Default Address" />
+                  <PasswordField fx:id="passwordField2" layoutX="30.0" layoutY="180.0" promptText="Password" />
+                  <PasswordField fx:id="confirmPasswordField2" layoutX="30.0" layoutY="210.0" promptText="Repeat password" />
+                  <Button fx:id="registerButton2" layoutX="30.0" layoutY="300.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="159.5" text="Register" />
+               </children>
+            </AnchorPane>
+         </content>
+      </Tab>
+      <Tab text="Driver">
+         <content>
+            <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <Button fx:id="backButton3" layoutX="10.0" layoutY="10.0" mnemonicParsing="false" text="Back" />
+                  <TextField fx:id="usernameField3" layoutX="30.0" layoutY="60.0" promptText="Username" />
+                  <TextField fx:id="emailField3" layoutX="30.0" layoutY="90.0" promptText="Email" />
+                  <TextField fx:id="phoneField3" layoutX="30.0" layoutY="120.0" promptText="Phone number" />
+                  <javafx.scene.control.ComboBox fx:id="vehicleTypeCombo" layoutX="30.0" layoutY="150.0" prefWidth="160.0" promptText="Vehicle Type" />
+                  <PasswordField fx:id="passwordField3" layoutX="30.0" layoutY="180.0" promptText="Password" />
+                  <PasswordField fx:id="confirmPasswordField3" layoutX="30.0" layoutY="210.0" promptText="Repeat password" />
+                  <Button fx:id="registerButton3" layoutX="30.0" layoutY="300.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="159.5" text="Register" />
+               </children>
+            </AnchorPane>
+         </content>
+      </Tab>
   </tabs>
 </TabPane>

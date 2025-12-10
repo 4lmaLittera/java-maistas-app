@@ -10,6 +10,8 @@
     <top>
         <MenuBar>
             <Menu text="File">
+                <MenuItem text="Profile" onAction="#handleProfile" />
+                <SeparatorMenuItem />
                 <MenuItem text="Logout" onAction="#handleLogout" />
             </Menu>
             <Menu text="Help">
@@ -30,6 +32,7 @@
                             <Button fx:id="editRestaurantBtn" text="Edit Restaurant" onAction="#handleEditRestaurant" disable="true" />
                             <Button fx:id="deleteRestaurantBtn" text="Delete Restaurant" onAction="#handleDeleteRestaurant" disable="true" />
                             <Button fx:id="reviewsBtn" text="Reviews" onAction="#handleShowReviews" disable="true" />
+                            <Button fx:id="viewMenuBtn" text="View Menu" onAction="#handleViewMenu" disable="true" />
                             <Separator orientation="VERTICAL" />
                             <Label text="Search:" />
                             <TextField fx:id="restaurantSearchField" promptText="Name..." prefWidth="150" />

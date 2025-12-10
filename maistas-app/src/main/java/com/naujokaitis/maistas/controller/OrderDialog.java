@@ -22,9 +22,12 @@ public class OrderDialog extends Dialog<Order> {
     private final ListView<com.naujokaitis.maistas.model.MenuItem> availableItemsList;
     private final ListView<OrderItemEntry> selectedItemsList;
     private final Label totalLabel;
+    private final ComboBox<PaymentType> paymentTypeComboBox;
+    private final ComboBox<OrderStatus> statusComboBox;
 
     private final GenericHibernate<Client> clientRepo = new GenericHibernate<>(Client.class);
     private final GenericHibernate<Restaurant> restaurantRepo = new GenericHibernate<>(Restaurant.class);
+    private final GenericHibernate<com.naujokaitis.maistas.model.MenuItem> menuItemRepo = new GenericHibernate<>(com.naujokaitis.maistas.model.MenuItem.class);
     private final CustomHibernate customHibernate = new CustomHibernate();
 
     private final List<OrderItemEntry> selectedItems = new ArrayList<>();
@@ -61,6 +64,11 @@ public class OrderDialog extends Dialog<Order> {
         totalLabel = new Label("Total: €0.00");
         totalLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
+        paymentTypeComboBox = new ComboBox<>(FXCollections.observableArrayList(PaymentType.values()));
+        paymentTypeComboBox.setValue(PaymentType.CARD);
+
+        statusComboBox = new ComboBox<>();
+
         // Load data
         loadClients();
         loadRestaurants();
@@ -93,6 +101,34 @@ public class OrderDialog extends Dialog<Order> {
             grid.add(new Label("Delivery Address:*"), 0, 2);
             grid.add(deliveryAddressField, 1, 2);
 
+            grid.add(new Label("Payment Method:"), 0, 3);
+            grid.add(paymentTypeComboBox, 1, 3);
+
+            User currentUser = Session.getInstance().getCurrentUser();
+            if (currentUser instanceof Client) {
+                Client appClient = (Client) currentUser;
+                
+                clientComboBox.getItems().stream()
+                    .filter(c -> c.getId().equals(appClient.getId()))
+                    .findFirst()
+                    .ifPresent(c -> {
+                        clientComboBox.setValue(c);
+                        clientComboBox.setDisable(true);
+                        // Trigger address fill manually since we set value programmatically
+                        if (deliveryAddressField.getText().isEmpty()) {
+                            deliveryAddressField.setText(c.getDefaultAddress());
+                        }
+                    });
+
+                // Set default payment method
+                for (PaymentMethod pm : appClient.getPaymentMethods()) {
+                    if (pm.isDefault()) {
+                        paymentTypeComboBox.setValue(pm.getPaymentType());
+                        break;
+                    }
+                }
+            }
+
             // Items selection area
             VBox itemsBox = new VBox(10);
             itemsBox.setPadding(new Insets(10, 0, 0, 0));
@@ -116,7 +152,7 @@ public class OrderDialog extends Dialog<Order> {
 
             itemsBox.getChildren().addAll(listsBox, totalLabel);
 
-            grid.add(itemsBox, 0, 3, 2, 1);
+            grid.add(itemsBox, 0, 4, 2, 1);
         } else {
             // Edit mode - only status change
             Label idLabel = new Label("Order ID:");
@@ -132,8 +168,33 @@ public class OrderDialog extends Dialog<Order> {
             restaurantField.setEditable(false);
 
             Label currentStatusLabel = new Label("Current Status:");
-            TextField currentStatusField = new TextField(order.getCurrentStatus().toString());
-            currentStatusField.setEditable(false);
+            
+            // Populate status based on role
+            User currentUser = Session.getInstance().getCurrentUser();
+            List<OrderStatus> allowedStatuses = new ArrayList<>();
+            
+            if (currentUser instanceof com.naujokaitis.maistas.model.Administrator) {
+                 allowedStatuses.addAll(Arrays.asList(OrderStatus.values()));
+            } else if (currentUser instanceof com.naujokaitis.maistas.model.RestaurantOwner) {
+                 allowedStatuses.add(OrderStatus.CONFIRMED);
+                 allowedStatuses.add(OrderStatus.PREPARING);
+                 allowedStatuses.add(OrderStatus.READY);
+            } else if (currentUser instanceof Driver) {
+                 allowedStatuses.add(OrderStatus.PICKED_UP);
+                 allowedStatuses.add(OrderStatus.DELIVERED);
+            }
+            
+            // Ensure current status is present so it doesn't look blank
+            if (!allowedStatuses.contains(order.getCurrentStatus())) {
+                 allowedStatuses.add(0, order.getCurrentStatus());
+            }
+
+            statusComboBox.setItems(FXCollections.observableArrayList(allowedStatuses));
+            statusComboBox.setValue(order.getCurrentStatus());
+            
+            if (currentUser instanceof Client) {
+                 statusComboBox.setDisable(true);
+            }
 
             grid.add(idLabel, 0, 0);
             grid.add(idField, 1, 0);
@@ -142,7 +203,7 @@ public class OrderDialog extends Dialog<Order> {
             grid.add(restaurantLabel, 0, 2);
             grid.add(restaurantField, 1, 2);
             grid.add(currentStatusLabel, 0, 3);
-            grid.add(currentStatusField, 1, 3);
+            grid.add(statusComboBox, 1, 3);
         }
 
         getDialogPane().setContent(grid);
@@ -339,6 +400,26 @@ public class OrderDialog extends Dialog<Order> {
             errors.append("Please add at least one item to the order\n");
         }
 
+        // Check inventory availability
+        for (OrderItemEntry entry : selectedItems) {
+            if (entry.quantity > entry.menuItem.getInventoryCount()) {
+                errors.append("Insufficient inventory for ").append(entry.menuItem.getName())
+                      .append(". Available: ").append(entry.menuItem.getInventoryCount()).append("\n");
+            }
+        }
+
+        if (paymentTypeComboBox.getValue() == PaymentType.WALLET) {
+            Client client = clientComboBox.getValue();
+            if (client != null) {
+                BigDecimal total = selectedItems.stream()
+                        .map(e -> e.unitPrice.multiply(BigDecimal.valueOf(e.quantity)))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                if (client.getWalletBalance().compareTo(total) < 0) {
+                    errors.append("Insufficient funds in wallet. Balance: €").append(client.getWalletBalance()).append("\n");
+                }
+            }
+        }
+
         if (errors.length() > 0) {
             showError(errors.toString());
             return false;
@@ -348,14 +429,38 @@ public class OrderDialog extends Dialog<Order> {
 
     private Order createOrUpdateOrder() {
         if (existingOrder != null) {
-            return existingOrder; // No changes in edit mode for now
+            OrderStatus newStatus = statusComboBox.getValue();
+            if (newStatus != null && newStatus != existingOrder.getCurrentStatus()) {
+                 User currentUser = Session.getInstance().getCurrentUser();
+                 existingOrder.updateStatus(newStatus, currentUser, "Status updated by user");
+                 
+                 // Award loyalty points if delivered
+                 if (newStatus == OrderStatus.DELIVERED) {
+                     Client client = existingOrder.getClient();
+                     if (client != null) {
+                         int pointsEarned = existingOrder.getTotalPrice().multiply(new BigDecimal("10")).intValue();
+                         LoyaltyAccount account = new LoyaltyAccount(client, client.getLoyaltyPoints(), com.naujokaitis.maistas.model.LoyaltyTier.BRONZE);
+                         account.earnPoints(existingOrder, pointsEarned);
+                         client.setLoyaltyPoints(account.getPointsBalance());
+                         
+                         try {
+                             clientRepo.update(client);
+                             System.out.println(" awarded " + pointsEarned + " points to " + client.getUsername());
+                         } catch (Exception e) {
+                             showError("Failed to update loyalty points: " + e.getMessage());
+                         }
+                     }
+                 }
+            }
+            return existingOrder;
         }
 
         Client client = clientComboBox.getValue();
         Restaurant restaurant = restaurantComboBox.getValue();
         String address = deliveryAddressField.getText().trim();
+        PaymentType paymentType = paymentTypeComboBox.getValue();
 
-        Order order = new Order(UUID.randomUUID(), client, restaurant, address);
+        Order order = new Order(UUID.randomUUID(), client, restaurant, address, paymentType);
 
         for (OrderItemEntry entry : selectedItems) {
             OrderItem orderItem = new OrderItem(
@@ -365,6 +470,19 @@ public class OrderDialog extends Dialog<Order> {
                     entry.unitPrice,
                     null);
             order.addItem(orderItem);
+            
+            // Reduce inventory
+            com.naujokaitis.maistas.model.MenuItem itemToUpdate = entry.menuItem;
+            itemToUpdate.setInventoryCount(itemToUpdate.getInventoryCount() - entry.quantity);
+            try {
+                menuItemRepo.update(itemToUpdate);
+            } catch (Exception e) {
+                // If update fails, we should ideally rollback the whole order creation,
+                // but for now let's just log/show error.
+                // In a real app we'd wrap this all in one transaction check.
+                e.printStackTrace();
+                showError("Failed to update inventory for " + itemToUpdate.getName());
+            }
         }
 
         return order;
@@ -388,7 +506,6 @@ public class OrderDialog extends Dialog<Order> {
         return dialog.showAndWait();
     }
 
-    // Helper class to track selected items
     private static class OrderItemEntry {
         com.naujokaitis.maistas.model.MenuItem menuItem;
         int quantity;

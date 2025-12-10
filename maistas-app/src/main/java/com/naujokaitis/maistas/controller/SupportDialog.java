@@ -85,11 +85,18 @@ public class SupportDialog extends Dialog<Void> {
         closeBtn.managedProperty().bind(closeBtn.visibleProperty());
         closeBtn.setOnAction(e -> handleCloseTicket());
 
-        HBox actionButtons = new HBox(10, resolveBtn, closeBtn);
+        // Delete button (Admin only)
+        Button deleteBtn = new Button("Delete");
+        deleteBtn.setVisible(false);
+        deleteBtn.setStyle("-fx-background-color: #ffcccc; -fx-text-fill: red; -fx-border-color: red;");
+        deleteBtn.managedProperty().bind(deleteBtn.visibleProperty());
+        deleteBtn.setOnAction(e -> handleDeleteTicket());
+
+        HBox actionButtons = new HBox(10, resolveBtn, closeBtn, deleteBtn);
 
         // Update button states
         ticketList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            updateButtonStates(newVal);
+            updateButtonStates(newVal, deleteBtn);
         });
 
         // Add New Ticket Pane
@@ -124,19 +131,15 @@ public class SupportDialog extends Dialog<Void> {
 
         content.getChildren().addAll(new Label("Existing Tickets:"), ticketList, actionButtons, addTicketPane);
         
-        // Hide creating tickets if not allowed? 
-        // Assuming Clients can create tickets.
-        // What restrictions? "Restricting Client... support ticket functionality" 
-        // Probably Clients CREATE, Admins RESOLVE?
-        
         getDialogPane().setContent(content);
     }
 
-    private void updateButtonStates(SupportTicket selectedTicket) {
+    private void updateButtonStates(SupportTicket selectedTicket, Button deleteBtn) {
         User currentUser = Session.getInstance().getCurrentUser();
         if (selectedTicket == null || currentUser == null) {
             resolveBtn.setVisible(false);
             closeBtn.setVisible(false);
+            deleteBtn.setVisible(false);
             return;
         }
 
@@ -149,6 +152,30 @@ public class SupportDialog extends Dialog<Void> {
 
         // Close: Creator or Admin can close/cancel
         closeBtn.setVisible(isOpen && (isCreator || isAdmin));
+
+        // Delete: Only Admin
+        deleteBtn.setVisible(isAdmin);
+    }
+    
+    private void handleDeleteTicket() {
+        SupportTicket selected = ticketList.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Ticket");
+        alert.setHeaderText("Delete Support Ticket?");
+        alert.setContentText("Are you sure you want to permanently delete this ticket?");
+        
+        alert.showAndWait().ifPresent(type -> {
+            if (type == ButtonType.OK) {
+                try {
+                    ticketRepo.delete(selected);
+                    loadTickets();
+                } catch (Exception e) {
+                    showAlert("Failed to delete ticket: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private void handleResolveTicket() {

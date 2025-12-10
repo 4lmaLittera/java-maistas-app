@@ -51,7 +51,7 @@ public class ChatDialog extends Dialog<Void> {
                     setGraphic(null);
                 } else {
                     VBox box = new VBox(2);
-                    Label authorLabel = new Label(msg.getAuthor().getUsername());
+                    Label authorLabel = new Label(msg.getAuthor().getUsername() + " [" + msg.getAuthor().getRole() + "]");
                     authorLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 10px;");
                     Label contentLabel = new Label(msg.getContent());
                     contentLabel.setWrapText(true);

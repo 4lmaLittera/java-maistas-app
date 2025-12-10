@@ -132,10 +132,21 @@ public class ReviewDialog extends Dialog<Void> {
 
         addReviewPane.setContent(grid);
 
+        User currentUser = Session.getInstance().getCurrentUser();
+        
         content.getChildren().addAll(new Label("Reviews:"), reviewsList, reviewButtons);
+        
+        // Hide edit/delete for RestaurantOwner
+        if (currentUser instanceof com.naujokaitis.maistas.model.RestaurantOwner) {
+             editBtn.setVisible(false);
+             editBtn.setManaged(false);
+             deleteBtn.setVisible(false);
+             deleteBtn.setManaged(false);
+             reviewButtons.setVisible(false); // Hide container too
+             reviewButtons.setManaged(false);
+        }
 
         // Only allow Client and Driver to write reviews
-        User currentUser = Session.getInstance().getCurrentUser();
         if (currentUser instanceof Client || currentUser instanceof Driver) {
             content.getChildren().add(addReviewPane);
         }

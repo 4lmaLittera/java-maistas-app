@@ -71,14 +71,20 @@ public class Order {
     @Column(name = "current_status", nullable = false)
     private OrderStatus currentStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type", nullable = false)
+    private PaymentType paymentType;
+
     public Order(UUID id,
             Client client,
             Restaurant restaurant,
-            String deliveryAddress) {
+            String deliveryAddress,
+            PaymentType paymentType) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.client = Objects.requireNonNull(client, "client must not be null");
         this.restaurant = Objects.requireNonNull(restaurant, "restaurant must not be null");
         this.deliveryAddress = Objects.requireNonNull(deliveryAddress, "deliveryAddress must not be null");
+        this.paymentType = Objects.requireNonNullElse(paymentType, PaymentType.CARD);
         this.items = new ArrayList<>();
         this.statusHistory = new ArrayList<>();
         this.totalPrice = BigDecimal.ZERO;

@@ -23,7 +23,30 @@ public class OrderStatusDialog extends Dialog<OrderStatus> {
 
         // Create form fields
         statusComboBox = new ComboBox<>();
-        statusComboBox.setItems(FXCollections.observableArrayList(OrderStatus.values()));
+        
+        // Populate status based on role
+        User currentUser = Session.getInstance().getCurrentUser();
+        java.util.List<OrderStatus> allowedStatuses = new java.util.ArrayList<>();
+        
+        if (currentUser instanceof Administrator) {
+             allowedStatuses.addAll(java.util.Arrays.asList(OrderStatus.values()));
+        } else if (currentUser instanceof RestaurantOwner) {
+             // Restrict to logical restaurant steps
+             allowedStatuses.add(OrderStatus.CONFIRMED);
+             allowedStatuses.add(OrderStatus.PREPARING);
+             allowedStatuses.add(OrderStatus.READY);
+        } else if (currentUser instanceof Driver) {
+             allowedStatuses.add(OrderStatus.PICKED_UP);
+             allowedStatuses.add(OrderStatus.DELIVERED);
+        }
+        
+        // Ensure current status is present so it doesn't look blank (but maybe disable if not allowed to switch back?)
+        // Taking a safe approach: add current so it displays correctly.
+        if (!allowedStatuses.contains(order.getCurrentStatus())) {
+             allowedStatuses.add(0, order.getCurrentStatus());
+        }
+
+        statusComboBox.setItems(FXCollections.observableArrayList(allowedStatuses));
         statusComboBox.setValue(order.getCurrentStatus());
         statusComboBox.setPrefWidth(200);
 
