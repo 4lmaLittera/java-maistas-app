@@ -10,6 +10,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
+import com.naujokaitis.maistas.database.CustomHibernate;
+import java.time.LocalTime;
 import java.util.*;
 
 public class OrderDialog extends Dialog<Order> {
@@ -23,9 +25,11 @@ public class OrderDialog extends Dialog<Order> {
 
     private final GenericHibernate<Client> clientRepo = new GenericHibernate<>(Client.class);
     private final GenericHibernate<Restaurant> restaurantRepo = new GenericHibernate<>(Restaurant.class);
+    private final CustomHibernate customHibernate = new CustomHibernate();
 
     private final List<OrderItemEntry> selectedItems = new ArrayList<>();
     private Order existingOrder;
+    private Restaurant loadedRestaurant;
 
     public OrderDialog(Order order) {
         this.existingOrder = order;
@@ -218,16 +222,44 @@ public class OrderDialog extends Dialog<Order> {
     private void loadMenuItems() {
         availableItemsList.getItems().clear();
         Restaurant selected = restaurantComboBox.getValue();
-        if (selected != null && selected.getMenu() != null) {
-            availableItemsList.setItems(FXCollections.observableArrayList(selected.getMenu().getItems()));
-            availableItemsList.setCellFactory(param -> new ListCell<>() {
-                @Override
-                protected void updateItem(com.naujokaitis.maistas.model.MenuItem item, boolean empty) {
-                    super.updateItem(item, empty);
-                    setText(empty || item == null ? null : item.getName() + " - €" + item.getPrice());
-                }
-            });
+        if (selected != null) {
+            // Load full restaurant with pricing rules
+            loadedRestaurant = customHibernate.findRestaurantWithPricingRules(selected.getId());
+            
+            if (loadedRestaurant != null && loadedRestaurant.getMenu() != null) {
+                availableItemsList.setItems(FXCollections.observableArrayList(loadedRestaurant.getMenu().getItems()));
+                availableItemsList.setCellFactory(param -> new ListCell<>() {
+                    @Override
+                    protected void updateItem(com.naujokaitis.maistas.model.MenuItem item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            // Calculate price for display if rules apply
+                            BigDecimal price = calculatePrice(item);
+                            String priceText = "€" + price;
+                            if (price.compareTo(item.getPrice()) != 0) {
+                                priceText += " (Regular: €" + item.getPrice() + ")";
+                            }
+                            setText(item.getName() + " - " + priceText);
+                        }
+                    }
+                });
+            }
         }
+    }
+
+    private BigDecimal calculatePrice(com.naujokaitis.maistas.model.MenuItem item) {
+        BigDecimal price = item.getPrice();
+        if (loadedRestaurant != null) {
+            LocalTime now = LocalTime.now();
+            for (PricingRule rule : loadedRestaurant.getPricingRules()) {
+                if (rule.getTimeRange() != null && rule.getTimeRange().contains(now)) {
+                    price = rule.apply(item, price);
+                }
+            }
+        }
+        return price;
     }
 
     private void addSelectedItem() {
@@ -243,7 +275,8 @@ public class OrderDialog extends Dialog<Order> {
         if (existing.isPresent()) {
             existing.get().quantity++;
         } else {
-            selectedItems.add(new OrderItemEntry(selected, 1));
+            BigDecimal finalPrice = calculatePrice(selected);
+            selectedItems.add(new OrderItemEntry(selected, 1, finalPrice));
         }
 
         refreshSelectedItems();
@@ -273,14 +306,15 @@ public class OrderDialog extends Dialog<Order> {
                 super.updateItem(entry, empty);
                 setText(empty || entry == null ? null
                         : entry.quantity + "x " + entry.menuItem.getName() + " - €" +
-                                entry.menuItem.getPrice().multiply(BigDecimal.valueOf(entry.quantity)));
+                                entry.unitPrice.multiply(BigDecimal.valueOf(entry.quantity)) + 
+                                (entry.unitPrice.compareTo(entry.menuItem.getPrice()) != 0 ? " (Modified)" : ""));
             }
         });
     }
 
     private void updateTotal() {
         BigDecimal total = selectedItems.stream()
-                .map(e -> e.menuItem.getPrice().multiply(BigDecimal.valueOf(e.quantity)))
+                .map(e -> e.unitPrice.multiply(BigDecimal.valueOf(e.quantity)))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         totalLabel.setText("Total: €" + total);
     }
@@ -328,7 +362,7 @@ public class OrderDialog extends Dialog<Order> {
                     UUID.randomUUID(),
                     entry.menuItem,
                     entry.quantity,
-                    entry.menuItem.getPrice(),
+                    entry.unitPrice,
                     null);
             order.addItem(orderItem);
         }
@@ -358,10 +392,12 @@ public class OrderDialog extends Dialog<Order> {
     private static class OrderItemEntry {
         com.naujokaitis.maistas.model.MenuItem menuItem;
         int quantity;
+        BigDecimal unitPrice;
 
-        OrderItemEntry(com.naujokaitis.maistas.model.MenuItem menuItem, int quantity) {
+        OrderItemEntry(com.naujokaitis.maistas.model.MenuItem menuItem, int quantity, BigDecimal unitPrice) {
             this.menuItem = menuItem;
             this.quantity = quantity;
+            this.unitPrice = unitPrice;
         }
     }
 }

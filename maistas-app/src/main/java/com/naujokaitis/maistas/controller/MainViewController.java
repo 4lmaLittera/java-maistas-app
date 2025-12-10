@@ -3,6 +3,7 @@ package com.naujokaitis.maistas.controller;
 import com.naujokaitis.maistas.App;
 import com.naujokaitis.maistas.database.GenericHibernate;
 import com.naujokaitis.maistas.model.*;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -13,7 +14,10 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.naujokaitis.maistas.database.CustomHibernate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class MainViewController {
 
@@ -120,6 +124,10 @@ public class MainViewController {
     private Button deleteOrderBtn;
     @FXML
     private Button chatBtn;
+    @FXML
+    private Button reviewBtn;
+    @FXML
+    private Button supportBtn;
 
     // Users Tab
     @FXML
@@ -174,6 +182,7 @@ public class MainViewController {
             com.naujokaitis.maistas.model.MenuItem.class);
     private final GenericHibernate<Order> orderRepo = new GenericHibernate<>(Order.class);
     private final GenericHibernate<User> userRepo = new GenericHibernate<>(User.class);
+    private final CustomHibernate customRepo = new CustomHibernate();
 
     @FXML
     private void initialize() {
@@ -264,6 +273,20 @@ public class MainViewController {
                         .orElse(0.0);
                 if (avgRating > 0) {
                     return new javafx.beans.property.SimpleStringProperty(String.format("%.1f", avgRating));
+                }
+                return new javafx.beans.property.SimpleStringProperty("No ratings");
+            } else if (user instanceof Driver || user instanceof Client) {
+                try {
+                    List<Review> reviews = customRepo.findReviewsByUserId(user.getId());
+                    if (reviews != null && !reviews.isEmpty()) {
+                        double avg = reviews.stream()
+                                .mapToInt(Review::getRating)
+                                .average()
+                                .orElse(0.0);
+                        return new javafx.beans.property.SimpleStringProperty(String.format("%.1f", avg));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
                 return new javafx.beans.property.SimpleStringProperty("No ratings");
             }
@@ -421,6 +444,12 @@ public class MainViewController {
                 addRestaurantBtn.setVisible(false);
                 editRestaurantBtn.setVisible(false);
                 deleteRestaurantBtn.setVisible(false);
+                
+                // Client cannot change status or delete orders
+                editOrderBtn.setVisible(false);
+                editOrderBtn.setManaged(false);
+                deleteOrderBtn.setVisible(false);
+                deleteOrderBtn.setManaged(false);
                 break;
             case DRIVER:
                 // Driver sees only orders
@@ -450,10 +479,30 @@ public class MainViewController {
         });
 
         ordersTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            boolean selected = newVal != null;
-            editOrderBtn.setDisable(!selected);
-            deleteOrderBtn.setDisable(!selected);
-            chatBtn.setDisable(!selected);
+            boolean hasSelection = newVal != null;
+            editOrderBtn.setDisable(!hasSelection);
+            deleteOrderBtn.setDisable(!hasSelection);
+            
+            chatBtn.setDisable(!hasSelection);
+            reviewBtn.setDisable(true);
+
+            if (newVal != null) {
+                User currentUser = Session.getInstance().getCurrentUser();
+                boolean isDelivered = newVal.getCurrentStatus() == OrderStatus.DELIVERED;
+                boolean isParticipant = false;
+                
+                if (currentUser != null) {
+                    boolean isClient = newVal.getClient() != null && newVal.getClient().getId().equals(currentUser.getId());
+                    boolean isDriver = newVal.getDriver() != null && newVal.getDriver().getId().equals(currentUser.getId());
+                    isParticipant = isClient || isDriver;
+                    
+                    if (isDelivered && (isParticipant || currentUser instanceof Administrator)) {
+                         reviewBtn.setDisable(false);
+                    }
+                }
+            }
+            // Support is available if an order is selected
+            supportBtn.setDisable(!hasSelection);
         });
 
         usersTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -828,6 +877,58 @@ public class MainViewController {
             return;
 
         new ChatDialog(selected).showAndWait();
+    }
+
+    @FXML
+    private void handleReviewOrder() {
+        Order selected = ordersTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        User currentUser = Session.getInstance().getCurrentUser();
+        
+        List<String> options = new ArrayList<>();
+        if (currentUser instanceof Client) {
+            if (selected.getDriver() != null) options.add("Review Driver: " + selected.getDriver().getUsername());
+            options.add("Review Restaurant: " + selected.getRestaurant().getName());
+        } else if (currentUser instanceof Driver) {
+            options.add("Review Client: " + selected.getClient().getUsername());
+        }
+        
+        if (options.isEmpty()) {
+            showError("Review Error", "No targets to review", "You cannot review anyone for this order.");
+            return;
+        }
+        
+        String choice;
+        if (options.size() == 1) {
+            choice = options.get(0);
+        } else {
+            ChoiceDialog<String> dialog = new ChoiceDialog<>(options.get(0), options);
+            dialog.setTitle("Select Review Target");
+            dialog.setHeaderText("Who do you want to review?");
+            dialog.setContentText("Target:");
+            Optional<String> result = dialog.showAndWait();
+            if (result.isEmpty()) return;
+            choice = result.get();
+        }
+        
+        if (choice.startsWith("Review Driver")) {
+            new ReviewDialog(selected.getDriver()).showAndWait();
+            handleRefreshUsers();
+        } else if (choice.startsWith("Review Restaurant")) {
+            new ReviewDialog(selected.getRestaurant()).showAndWait();
+            handleRefreshRestaurants();
+        } else if (choice.startsWith("Review Client")) {
+            new ReviewDialog(selected.getClient()).showAndWait();
+            handleRefreshUsers();
+        }
+    }
+
+    @FXML
+    private void handleSupport() {
+        Order selected = ordersTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+        new SupportDialog(selected).showAndWait();
     }
 
     // User actions

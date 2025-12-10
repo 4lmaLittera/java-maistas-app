@@ -116,6 +116,8 @@
                             <Button fx:id="editOrderBtn" text="Change Status" onAction="#handleEditOrder" disable="true" />
                             <Button fx:id="deleteOrderBtn" text="Delete Order" onAction="#handleDeleteOrder" disable="true" />
                             <Button fx:id="chatBtn" text="Chat" onAction="#handleChat" disable="true" />
+                            <Button fx:id="reviewBtn" text="Review" onAction="#handleReviewOrder" disable="true" />
+                            <Button fx:id="supportBtn" text="Support" onAction="#handleSupport" disable="true" />
                             <Separator orientation="VERTICAL" />
                             <Label text="Filter:" />
                             <ComboBox fx:id="orderStatusFilter" promptText="All" />

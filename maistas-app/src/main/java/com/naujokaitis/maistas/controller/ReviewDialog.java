@@ -23,17 +23,30 @@ import java.util.UUID;
 
 public class ReviewDialog extends Dialog<Void> {
 
-    private final Restaurant restaurant;
+    private Restaurant restaurant;
+    private User targetUser;
     private final GenericHibernate<Review> reviewRepo = new GenericHibernate<>(Review.class);
     private final CustomHibernate customRepo = new CustomHibernate();
-    private final ListView<Review> reviewsList;
-    private final Button editBtn;
-    private final Button deleteBtn;
+    private ListView<Review> reviewsList;
+    private Button editBtn;
+    private Button deleteBtn;
+    private final boolean isRestaurantReview;
 
     public ReviewDialog(Restaurant restaurant) {
         this.restaurant = restaurant;
-        setTitle("Reviews for " + restaurant.getName());
-        setHeaderText("Customer Reviews");
+        this.isRestaurantReview = true;
+        setupDialog("Reviews for " + restaurant.getName(), "Customer Reviews");
+    }
+
+    public ReviewDialog(User targetUser) {
+        this.targetUser = targetUser;
+        this.isRestaurantReview = false;
+        setupDialog("Reviews for " + targetUser.getUsername(), "User Reviews");
+    }
+
+    private void setupDialog(String title, String header) {
+        setTitle(title);
+        setHeaderText(header);
 
         ButtonType closeButtonType = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
         getDialogPane().getButtonTypes().add(closeButtonType);
@@ -201,7 +214,9 @@ public class ReviewDialog extends Dialog<Void> {
         result.ifPresent(review -> {
             try {
                 reviewRepo.update(review);
-                customRepo.updateRestaurantRating(restaurant.getId());
+                if (isRestaurantReview) {
+                    customRepo.updateRestaurantRating(restaurant.getId());
+                }
                 loadReviews();
             } catch (Exception e) {
                 showAlert("Failed to update review: " + e.getMessage());
@@ -232,7 +247,9 @@ public class ReviewDialog extends Dialog<Void> {
             if (response == ButtonType.OK) {
                 try {
                     reviewRepo.delete(selected);
-                    customRepo.updateRestaurantRating(restaurant.getId());
+                    if (isRestaurantReview) {
+                        customRepo.updateRestaurantRating(restaurant.getId());
+                    }
                     loadReviews();
                 } catch (Exception e) {
                     showAlert("Failed to delete review: " + e.getMessage());
@@ -243,8 +260,20 @@ public class ReviewDialog extends Dialog<Void> {
 
     private void loadReviews() {
         try {
-            List<Review> restaurantReviews = customRepo.findReviewsByRestaurantId(restaurant.getId());
-            reviewsList.setItems(FXCollections.observableArrayList(restaurantReviews));
+            List<Review> reviews;
+            if (isRestaurantReview) {
+                reviews = customRepo.findReviewsByRestaurantId(restaurant.getId());
+                // Also load reviews where this restaurant is the target? 
+                // Wait, requirements say "Reviews about clients... and drivers".
+                // Review model has targetUser and targetRestaurant.
+                // findReviewsByRestaurantId likely queries by targetRestaurant.
+            } else {
+                // For users, we need to fetch reviews where targetUser is this user
+                 reviews = customRepo.findReviewsByUserId(targetUser.getId());
+            }
+            if (reviews != null) {
+                reviewsList.setItems(FXCollections.observableArrayList(reviews));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -273,15 +302,17 @@ public class ReviewDialog extends Dialog<Void> {
             Review review = new Review(
                     UUID.randomUUID(),
                     currentUser,
-                    null, // target user
-                    restaurant,
+                    isRestaurantReview ? null : targetUser,
+                    isRestaurantReview ? restaurant : null,
                     rating,
                     comment,
                     LocalDateTime.now());
             reviewRepo.save(review);
 
             // Update restaurant's average rating
-            customRepo.updateRestaurantRating(restaurant.getId());
+            if (isRestaurantReview) {
+                customRepo.updateRestaurantRating(restaurant.getId());
+            }
         } catch (Exception e) {
             showAlert("Failed to save review: " + e.getMessage());
         }

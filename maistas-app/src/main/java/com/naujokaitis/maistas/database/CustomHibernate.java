@@ -2,6 +2,7 @@ package com.naujokaitis.maistas.database;
 
 import com.naujokaitis.maistas.model.Restaurant;
 import com.naujokaitis.maistas.model.Review;
+import com.naujokaitis.maistas.model.SupportTicket;
 import com.naujokaitis.maistas.model.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -33,6 +34,28 @@ public class CustomHibernate {
                     "SELECT r FROM Review r LEFT JOIN FETCH r.author LEFT JOIN FETCH r.targetRestaurant WHERE r.targetRestaurant.id = :restaurantId",
                     Review.class);
             query.setParameter("restaurantId", restaurantId);
+            return query.getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    public List<SupportTicket> findSupportTicketsByOrderId(UUID orderId) {
+        try (EntityManager em = JpaUtil.getEntityManager()) {
+            TypedQuery<SupportTicket> query = em.createQuery(
+                    "SELECT st FROM SupportTicket st LEFT JOIN FETCH st.createdBy LEFT JOIN FETCH st.assignedTo WHERE st.order.id = :orderId", SupportTicket.class);
+            query.setParameter("orderId", orderId);
+            return query.getResultList();
+        }
+    }
+
+    public List<Review> findReviewsByUserId(UUID userId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            TypedQuery<Review> query = em.createQuery(
+                    "SELECT r FROM Review r LEFT JOIN FETCH r.author LEFT JOIN FETCH r.targetUser WHERE r.targetUser.id = :userId",
+                    Review.class);
+            query.setParameter("userId", userId);
             return query.getResultList();
         } finally {
             em.close();
