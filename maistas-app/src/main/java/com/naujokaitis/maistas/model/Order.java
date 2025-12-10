@@ -38,12 +38,12 @@ public class Order {
     private Driver driver;
 
     @Getter(AccessLevel.NONE)
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "order_id")
     private List<OrderItem> items = new ArrayList<>();
 
     @Getter(AccessLevel.NONE)
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "order_status_history", joinColumns = @JoinColumn(name = "order_id"))
     private List<OrderStatusChange> statusHistory = new ArrayList<>();
 

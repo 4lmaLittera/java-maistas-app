@@ -26,25 +26,28 @@ public class App extends Application {
     public static void showInitialView() throws IOException {
         Parent root = FXMLLoader.load(App.class.getResource("/com/naujokaitis/maistas/views/InitialView.fxml"));
         primaryStage.setScene(new Scene(root, 800, 400));
-        primaryStage.setTitle("Maistas – Pradinis langas");
+        primaryStage.setTitle("WOLT ne mes BET norim būti!");
+        primaryStage.centerOnScreen();
     }
 
     public static void showLoginView() throws IOException {
         Parent root = FXMLLoader.load(App.class.getResource("/com/naujokaitis/maistas/views/LoginView.fxml"));
         primaryStage.setScene(new Scene(root, 800, 400));
         primaryStage.setTitle("Maistas – Prisijungimas");
+        primaryStage.centerOnScreen();
     }
 
     public static void showRegisterView() throws IOException {
         Parent root = FXMLLoader.load(App.class.getResource("/com/naujokaitis/maistas/views/RegisterView.fxml"));
         primaryStage.setScene(new Scene(root, 800, 400));
         primaryStage.setTitle("Maistas – Registracija");
+        primaryStage.centerOnScreen();
     }
 
     public static void showMainView() throws IOException {
         Parent root = FXMLLoader.load(App.class.getResource("/com/naujokaitis/maistas/views/MainView.fxml"));
-        primaryStage.setScene(new Scene(root, 800, 400));
+        primaryStage.setScene(new Scene(root, 1280, 720));
         primaryStage.setTitle("Maistas – Pagrindinis langas");
-
+        primaryStage.centerOnScreen();
     }
 }
