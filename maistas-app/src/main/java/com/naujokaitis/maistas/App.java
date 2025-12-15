@@ -23,6 +23,11 @@ public class App extends Application {
         primaryStage.show();
     }
 
+    @Override
+    public void stop() {
+        com.naujokaitis.maistas.database.JpaUtil.close();
+    }
+
     public static void showInitialView() throws IOException {
         Parent root = FXMLLoader.load(App.class.getResource("/com/naujokaitis/maistas/views/InitialView.fxml"));
         primaryStage.setScene(new Scene(root, 800, 400));

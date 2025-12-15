@@ -135,4 +135,66 @@ public class CustomHibernate {
             em.close();
         }
     }
+    public java.util.List<com.naujokaitis.maistas.model.Order> findOrdersByStatus(com.naujokaitis.maistas.model.OrderStatus status) {
+        if (status == null) {
+            return new GenericHibernate<>(com.naujokaitis.maistas.model.Order.class).findAll();
+        }
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            TypedQuery<com.naujokaitis.maistas.model.Order> query = em.createQuery(
+                    "SELECT o FROM Order o WHERE o.currentStatus = :status",
+                    com.naujokaitis.maistas.model.Order.class);
+            query.setParameter("status", status);
+            java.util.List<com.naujokaitis.maistas.model.Order> results = query.getResultList();
+            
+            // Initialize proxies to match what findAll does
+            for (com.naujokaitis.maistas.model.Order order : results) {
+                 org.hibernate.Hibernate.initialize(order);
+                 org.hibernate.Hibernate.initialize(order.getItems());
+                 org.hibernate.Hibernate.initialize(order.getStatusHistory());
+            }
+            
+            return results;
+        } finally {
+            em.close();
+        }
+    }
+    public boolean hasActiveOrder(java.util.UUID driverId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            TypedQuery<Long> query = em.createQuery(
+                    "SELECT COUNT(o) FROM Order o WHERE o.driver.id = :driverId AND o.currentStatus = :status",
+                    Long.class);
+            query.setParameter("driverId", driverId);
+            query.setParameter("status", com.naujokaitis.maistas.model.OrderStatus.PICKED_UP);
+            Long count = query.getSingleResult();
+            return count > 0;
+        } finally {
+            em.close();
+        }
+    }
+    public java.util.List<com.naujokaitis.maistas.model.Order> findAvailableOrdersForDriver(java.util.UUID driverId) {
+        EntityManager em = JpaUtil.getEntityManager();
+        try {
+            // Criteria:
+            // 1. Order is NOT delivered
+            // 2. AND (Driver is NULL OR Driver is ME)
+            TypedQuery<com.naujokaitis.maistas.model.Order> query = em.createQuery(
+                    "SELECT o FROM Order o WHERE o.currentStatus != :deliveredStatus AND (o.driver IS NULL OR o.driver.id = :driverId)",
+                    com.naujokaitis.maistas.model.Order.class);
+            query.setParameter("deliveredStatus", com.naujokaitis.maistas.model.OrderStatus.DELIVERED);
+            query.setParameter("driverId", driverId);
+            
+            java.util.List<com.naujokaitis.maistas.model.Order> results = query.getResultList();
+             // Initialize proxies
+            for (com.naujokaitis.maistas.model.Order order : results) {
+                 org.hibernate.Hibernate.initialize(order);
+                 org.hibernate.Hibernate.initialize(order.getItems());
+                 org.hibernate.Hibernate.initialize(order.getStatusHistory());
+            }
+            return results;
+        } finally {
+            em.close();
+        }
+    }
 }

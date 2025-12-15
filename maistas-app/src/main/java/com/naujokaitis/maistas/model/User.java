@@ -37,6 +37,10 @@ public abstract class User {
     @Getter(AccessLevel.PROTECTED)
     @Column(name = "password_hash", nullable = false)
     private String password;
+    
+    public void setPassword(String passwordHash) {
+        this.password = passwordHash;
+    }
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;

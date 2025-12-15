@@ -277,6 +277,12 @@ public class UserDialog extends Dialog<User> {
             // Update existing user
             existingUser.setStatus(status);
 
+            // Update password only if provided
+            if (!password.isEmpty()) {
+                 String newHash = BCrypt.hashpw(password, BCrypt.gensalt());
+                 existingUser.setPassword(newHash);
+            }
+            
             if (existingUser instanceof Client client) {
                 client.setDefaultAddress(addressField.getText().trim());
                 client.updatePaymentMethods(new ArrayList<>(paymentMethodListView.getItems()));

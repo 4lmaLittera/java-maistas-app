@@ -256,6 +256,17 @@ public class MainViewController {
         orderStatusCol.setCellValueFactory(new PropertyValueFactory<>("currentStatus"));
         orderTotalCol.setCellValueFactory(new PropertyValueFactory<>("totalPrice"));
         orderDateCol.setCellValueFactory(new PropertyValueFactory<>("placedAt"));
+
+        // Driver column (Programmatically added)
+        TableColumn<Order, String> orderDriverCol = new TableColumn<>("Driver");
+        orderDriverCol.setCellValueFactory(cellData -> {
+            Driver driver = cellData.getValue().getDriver();
+            return new javafx.beans.property.SimpleStringProperty(
+                driver != null ? driver.getUsername() : "-"
+            );
+        });
+        ordersTable.getColumns().add(orderDriverCol);
+
         ordersTable.setItems(orders);
 
         // Users table
@@ -324,6 +335,9 @@ public class MainViewController {
 
         restaurantSearchField.textProperty().addListener((obs, oldVal, newVal) -> updateRestaurantFilter());
         restaurantRatingFilter.valueProperty().addListener((obs, oldVal, newVal) -> updateRestaurantFilter());
+        
+        // Order filter - triggers DB fetch
+        orderStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> handleFilterOrders());
 
         // Menu restaurant filter
         menuRestaurantFilter.setCellFactory(param -> new ListCell<>() {
@@ -870,7 +884,15 @@ public class MainViewController {
     @FXML
     private void handleRefreshOrders() {
         try {
-            List<Order> data = orderRepo.findAll();
+            User currentUser = Session.getInstance().getCurrentUser();
+            List<Order> data;
+            
+            if (currentUser instanceof Driver) {
+                data = customRepo.findAvailableOrdersForDriver(currentUser.getId());
+            } else {
+                data = orderRepo.findAll();
+            }
+            
             orders.clear();
             orders.addAll(data);
             statusLabel.setText("Loaded " + data.size() + " orders");
@@ -882,19 +904,17 @@ public class MainViewController {
     @FXML
     private void handleFilterOrders() {
         OrderStatus filterStatus = orderStatusFilter.getValue();
-        if (filterStatus == null) {
-            handleRefreshOrders();
-            return;
-        }
-
         try {
-            List<Order> allOrders = orderRepo.findAll();
-            List<Order> filtered = allOrders.stream()
-                    .filter(o -> o.getCurrentStatus() == filterStatus)
-                    .toList();
+            List<Order> filtered;
+            if (filterStatus == null) {
+                // If null, we might still want to refresh to get all, but findOrdersByStatus(null) handles that
+                filtered = customRepo.findOrdersByStatus(null);
+            } else {
+                filtered = customRepo.findOrdersByStatus(filterStatus);
+            }
             orders.clear();
             orders.addAll(filtered);
-            statusLabel.setText("Filtered: " + filtered.size() + " orders with status " + filterStatus);
+            statusLabel.setText(filterStatus == null ? "Loaded all orders" : "Filtered: " + filtered.size() + " orders with status " + filterStatus);
         } catch (Exception e) {
             showError("Filter Error", "Failed to filter orders", e.getMessage());
         }
@@ -935,8 +955,25 @@ public class MainViewController {
             try {
                 User currentUser = Session.getInstance().getCurrentUser();
                 selected.updateStatus(newStatus, currentUser, dialog.getNote());
+                
+                // Driver Assignment Logic
+                if (currentUser instanceof Driver && newStatus == OrderStatus.PICKED_UP) {
+                    // Check 1: Order must be READY
+                    if (selected.getCurrentStatus() != OrderStatus.READY) {
+                         showError("Restriction", "Order is not ready!", "You can only pick up orders that are marked as READY by the restaurant.");
+                         return;
+                    }
+                    
+                    // Check 2: Driver must not have active orders
+                    if (customRepo.hasActiveOrder(currentUser.getId())) {
+                         showError("Restriction", "You already have an active order!", "Please deliver your current order before picking up a new one.");
+                         return;
+                    }
+                    selected.assignDriver((Driver) currentUser);
+                }
+                
                 orderRepo.update(selected);
-                ordersTable.refresh();
+                ordersTable.refresh(); // Refresh table view
                 statusLabel.setText("Order status updated to " + newStatus);
             } catch (Exception e) {
                 showError("Update Error", "Failed to update order status", e.getMessage());
@@ -990,6 +1027,9 @@ public class MainViewController {
             options.add("Review Restaurant: " + selected.getRestaurant().getName());
         } else if (currentUser instanceof Driver) {
             options.add("Review Client: " + selected.getClient().getUsername());
+        } else if (currentUser instanceof RestaurantOwner) {
+            options.add("Review Client: " + selected.getClient().getUsername());
+            if (selected.getDriver() != null) options.add("Review Driver: " + selected.getDriver().getUsername());
         }
         
         if (options.isEmpty()) {

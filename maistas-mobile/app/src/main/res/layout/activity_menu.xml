@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <TextView
+        android:id="@+id/restaurantTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Menu"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#FF5722"
+        android:padding="16dp"
+        android:background="#FFFFFF"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <TextView
+        android:id="@+id/hintText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tap item to add to cart"
+        android:textSize="12sp"
+        android:textColor="#888888"
+        android:padding="8dp"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/restaurantTitle"/>
+
+    <ListView
+        android:id="@+id/menuItemsList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:divider="#E0E0E0"
+        android:dividerHeight="1dp"
+        android:padding="8dp"
+        app:layout_constraintTop_toBottomOf="@id/hintText"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/cartFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_myplaces"
+        app:backgroundTint="#4CAF50"
+        app:tint="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/cartBadge"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:background="@android:drawable/ic_notification_overlay"
+        android:gravity="center"
+        android:text="0"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/cartFab"
+        app:layout_constraintEnd_toEndOf="@id/cartFab"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

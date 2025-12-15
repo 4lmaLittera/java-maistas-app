@@ -26,7 +26,8 @@ public class Client extends User {
     private String defaultAddress;
 
     @Setter
-    private int loyaltyPoints;
+    @Column(name = "loyaltyPoints", columnDefinition = "int default 0")
+    private Integer loyaltyPoints = 0;
 
     @Getter(AccessLevel.NONE)
     @ElementCollection(fetch = FetchType.EAGER) // Eager fetch simpler for this UI

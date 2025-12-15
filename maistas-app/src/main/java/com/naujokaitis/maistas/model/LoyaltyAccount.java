@@ -14,7 +14,10 @@ public class LoyaltyAccount {
     public LoyaltyAccount(Client client, int initialPoints, LoyaltyTier tier) {
         this.client = Objects.requireNonNull(client, "client must not be null");
         this.pointsBalance = Math.max(0, initialPoints);
+        // tier argument is ignored in favor of calculation based on points, or used as fallback?
+        // Logic suggests points dictate tier.
         this.tier = Objects.requireNonNullElse(tier, LoyaltyTier.BRONZE);
+        recalculateTier();
     }
 
     public void earnPoints(Order order, int points) {

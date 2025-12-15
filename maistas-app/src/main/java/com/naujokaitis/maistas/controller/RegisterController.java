@@ -207,20 +207,37 @@ public class RegisterController {
 
     private void registerUser(User user) {
         GenericHibernate<User> userRepo = new GenericHibernate<>(User.class);
-        userRepo.save(user);
-
-        Session.getInstance().setCurrentUser(user);
-
-        System.out.println("User saved successfully");
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle("Success");
-        alert.setHeaderText(null);
-        alert.setContentText("User saved successfully");
-        alert.showAndWait();
-
         try {
-            App.showMainView();
-        } catch (IOException e) {
+            userRepo.save(user);
+
+            Session.getInstance().setCurrentUser(user);
+
+            System.out.println("User saved successfully");
+            Alert alert = new Alert(AlertType.INFORMATION);
+            alert.setTitle("Success");
+            alert.setHeaderText(null);
+            alert.setContentText("User saved successfully");
+            alert.showAndWait();
+
+            try {
+                App.showMainView();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            // Check if it's a duplicate entry error
+            String message = e.getMessage();
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                message = cause.getMessage();
+                cause = cause.getCause();
+            }
+            
+            if (message != null && message.contains("Duplicate entry")) {
+                showAlert("Registration Error", "Username or email already exists. Please use different values.");
+            } else {
+                showAlert("Registration Error", "Failed to register user: " + message);
+            }
             e.printStackTrace();
         }
     }
