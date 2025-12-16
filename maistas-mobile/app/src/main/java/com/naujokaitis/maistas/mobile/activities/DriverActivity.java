@@ -64,9 +64,22 @@ public class DriverActivity extends AppCompatActivity {
             startActivity(new Intent(this, LoginActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             finish();
         });
-        findViewById(R.id.deliveredButton).setOnClickListener(v -> {
-            if (currentOrder != null) markDelivered(currentOrder.get("id").getAsString());
+
+        // Chat Button
+        findViewById(R.id.chatButton).setOnClickListener(v -> {
+            if (currentOrder != null) {
+                Intent intent = new Intent(this, ChatActivity.class);
+                intent.putExtra("orderId", currentOrder.get("id").getAsString());
+                intent.putExtra("userId", driverId);
+                startActivity(intent);
+            }
         });
+
+        // Delivered Button with Review
+        findViewById(R.id.deliveredButton).setOnClickListener(v -> {
+            if (currentOrder != null) showReviewDialog(currentOrder);
+        });
+
         availableOrdersList.setOnItemClickListener((p, v, pos, id) -> {
             if (pos < orders.size()) showPickupDialog(orders.get(pos));
         });
@@ -177,6 +190,67 @@ public class DriverActivity extends AppCompatActivity {
             } catch (IOException e) {
                 new Handler(Looper.getMainLooper()).post(() -> 
                     Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void showReviewDialog(JsonObject order) {
+        // Create Dialog Layout Programmatically
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 10);
+
+        TextView title = new TextView(this);
+        title.setText("Rate Client");
+        title.setTextSize(18);
+        title.setPadding(0, 0, 0, 20);
+        layout.addView(title);
+
+        RatingBar ratingBar = new RatingBar(this);
+        ratingBar.setNumStars(5);
+        ratingBar.setStepSize(1);
+        layout.addView(ratingBar);
+
+        EditText commentInput = new EditText(this);
+        commentInput.setHint("Comment (optional)");
+        layout.addView(commentInput);
+
+        new AlertDialog.Builder(this)
+            .setTitle("Review Client")
+            .setView(layout)
+            .setPositiveButton("Submit & Finish", (d, w) -> {
+                int rating = (int) ratingBar.getRating();
+                String comment = commentInput.getText().toString();
+                submitReviewAndFinish(order, rating, comment);
+            })
+            .setNegativeButton("Skip", (d, w) -> markDelivered(order.get("id").getAsString()))
+            .setNeutralButton("Cancel", null)
+            .show();
+    }
+
+    private void submitReviewAndFinish(JsonObject order, int rating, String comment) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                // Get Client ID
+                String clientId = order.getAsJsonObject("client").get("id").getAsString();
+                
+                JsonObject review = new JsonObject();
+                review.addProperty("authorId", driverId);
+                review.addProperty("targetUserId", clientId);
+                review.addProperty("rating", rating);
+                review.addProperty("comment", comment);
+                // targetRestaurantId is null
+
+                RestOperations.sendPost(HOME_URL + "api/reviews/", review.toString());
+                
+                // Then mark delivered
+                markDelivered(order.get("id").getAsString());
+
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> 
+                    Toast.makeText(this, "Review failed, but verifying delivery...", Toast.LENGTH_SHORT).show());
+                // Try marking delivered anyway
+                 markDelivered(order.get("id").getAsString());
             }
         });
     }

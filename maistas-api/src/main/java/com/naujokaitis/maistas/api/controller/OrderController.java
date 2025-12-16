@@ -129,6 +129,18 @@ public class OrderController {
         Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Driver", driverId));
 
+        if (order.getDriver() != null) {
+            throw new IllegalStateException("Order is already taken by another driver");
+        }
+
+        // Check if driver has active order
+        boolean hasActiveOrder = orderRepository.findByDriverId(driverId).stream()
+                .anyMatch(o -> o.getCurrentStatus() == OrderStatus.PICKED_UP);
+        
+        if (hasActiveOrder) {
+            throw new IllegalStateException("You already have an active order");
+        }
+
         order.assignDriver(driver);
         order.updateStatus(OrderStatus.PICKED_UP);
         return orderRepository.save(order);

@@ -3,7 +3,7 @@ package com.naujokaitis.maistas.mobile.utils;
 public class Constants {
     // Use 10.0.2.2 for Android emulator to connect to localhost
     // Use your computer's IP address for physical device
-    public static final String HOME_URL = "https://a80861062a0a.ngrok-free.app/";
+    public static final String HOME_URL = "https://187441ff49c0.ngrok-free.app/";
     
     // Auth endpoints
     public static final String VALIDATE_USER_URL = HOME_URL + "validateUser";

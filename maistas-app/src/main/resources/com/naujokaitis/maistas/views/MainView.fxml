@@ -116,7 +116,7 @@
                     <VBox spacing="10" style="-fx-padding: 10;">
                         <HBox spacing="10">
                             <Button fx:id="addOrderBtn" text="Create Order" onAction="#handleAddOrder" />
-                            <Button fx:id="editOrderBtn" text="Change Status" onAction="#handleEditOrder" disable="true" />
+                            <Button fx:id="editOrderBtn" text="Edit Order" onAction="#handleEditOrder" disable="true" />
                             <Button fx:id="deleteOrderBtn" text="Delete Order" onAction="#handleDeleteOrder" disable="true" />
                             <Button fx:id="chatBtn" text="Chat" onAction="#handleChat" disable="true" />
                             <Button fx:id="reviewBtn" text="Review" onAction="#handleReviewOrder" disable="true" />

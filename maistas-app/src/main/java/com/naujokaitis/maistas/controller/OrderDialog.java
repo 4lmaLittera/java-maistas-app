@@ -204,6 +204,51 @@ public class OrderDialog extends Dialog<Order> {
             grid.add(restaurantField, 1, 2);
             grid.add(currentStatusLabel, 0, 3);
             grid.add(statusComboBox, 1, 3);
+
+            // Item removal section for Restaurants/Admins
+            UserRole role = currentUser != null ? currentUser.getRole() : null;
+            if (role == UserRole.RESTAURANT_OWNER || role == UserRole.ADMIN) {
+                Label itemsLabel = new Label("Order Items:");
+                ListView<OrderItem> itemsListView = new ListView<>();
+                itemsListView.setPrefHeight(150);
+                itemsListView.setCellFactory(param -> new ListCell<>() {
+                    @Override
+                    protected void updateItem(OrderItem item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(String.format("%dx %s - €%.2f", item.getQuantity(), item.getMenuItem().getName(), item.getSubtotal()));
+                        }
+                    }
+                });
+                
+                // Load items
+                itemsListView.setItems(FXCollections.observableArrayList(order.getItems()));
+                
+                Label totalPriceLabel = new Label("Total Price: €" + order.getTotalPrice());
+                
+                Button removeItemBtn = new Button("Remove Selected Item");
+                removeItemBtn.setDisable(true);
+                
+                itemsListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                    removeItemBtn.setDisable(newVal == null);
+                });
+                
+                removeItemBtn.setOnAction(e -> {
+                    OrderItem selectedItem = itemsListView.getSelectionModel().getSelectedItem();
+                    if (selectedItem != null) {
+                        order.removeItem(selectedItem);
+                        itemsListView.setItems(FXCollections.observableArrayList(order.getItems())); // Refresh
+                        totalPriceLabel.setText("Total Price: €" + order.getTotalPrice());
+                    }
+                });
+
+                grid.add(itemsLabel, 0, 4);
+                grid.add(itemsListView, 0, 5, 2, 1);
+                grid.add(removeItemBtn, 0, 6);
+                grid.add(totalPriceLabel, 1, 6);
+            }
         }
 
         getDialogPane().setContent(grid);
