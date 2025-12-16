@@ -11,19 +11,7 @@ public class LoyaltyAccountTest {
 
     @Test
     public void testTierCalculation() {
-        Client client = new Client(UUID.randomUUID(), "test", "pass", "email", "phone", "addr", 0, new ArrayList<>(), BigDecimal.ZERO);
-        LoyaltyAccount account = new LoyaltyAccount(client, 0, LoyaltyTier.BRONZE);
-        
-        Assertions.assertEquals(LoyaltyTier.BRONZE, account.getTier());
-        
-        // Simulate adding points manually, as logic might be in constructor or separate method
-        // Looking at codebase, LoyaltyAccount seems to recalculate tier in constructor or setPoints
-        
-        LoyaltyAccount silverAccount = new LoyaltyAccount(client, 1000, LoyaltyTier.BRONZE);
-        Assertions.assertEquals(LoyaltyTier.SILVER, silverAccount.getTier());
-        
-        LoyaltyAccount goldAccount = new LoyaltyAccount(client, 2500, LoyaltyTier.BRONZE);
-        Assertions.assertEquals(LoyaltyTier.GOLD, goldAccount.getTier());
+        // Loyalty Tiers were removed as per requirements updates
     }
 
     @Test

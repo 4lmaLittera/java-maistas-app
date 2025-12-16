@@ -439,7 +439,7 @@ public class OrderDialog extends Dialog<Order> {
                      Client client = existingOrder.getClient();
                      if (client != null) {
                          int pointsEarned = existingOrder.getTotalPrice().multiply(new BigDecimal("10")).intValue();
-                         LoyaltyAccount account = new LoyaltyAccount(client, client.getLoyaltyPoints(), com.naujokaitis.maistas.model.LoyaltyTier.BRONZE);
+                         LoyaltyAccount account = new LoyaltyAccount(client, client.getLoyaltyPoints());
                          account.earnPoints(existingOrder, pointsEarned);
                          client.setLoyaltyPoints(account.getPointsBalance());
                          

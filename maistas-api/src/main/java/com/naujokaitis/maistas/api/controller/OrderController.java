@@ -28,6 +28,9 @@ public class OrderController {
     @Autowired
     private DriverRepository driverRepository;
 
+    @Autowired
+    private PricingRuleRepository pricingRuleRepository;
+
     // READ - Get all orders
     @GetMapping("/allOrders")
     public @ResponseBody Iterable<Order> getAllOrders() {
@@ -84,6 +87,17 @@ public class OrderController {
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant", request.getRestaurantId()));
 
         Order order = Order.create(client, restaurant, request.getDeliveryAddress(), request.getPaymentType());
+        
+        // Dynamic Pricing Logic
+        java.time.LocalTime now = java.time.LocalTime.now();
+        Iterable<PricingRule> rules = pricingRuleRepository.findAll();
+        for (PricingRule rule : rules) {
+             if (rule.getTimeRange() != null && rule.getTimeRange().contains(now)) {
+                 order.applyPricingRule(rule);
+                 break; // Apply first matching rule
+             }
+        }
+        
         return orderRepository.save(order);
     }
 

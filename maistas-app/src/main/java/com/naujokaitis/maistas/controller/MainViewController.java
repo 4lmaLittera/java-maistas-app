@@ -585,10 +585,10 @@ public class MainViewController {
                 Client client = (Client) currentUser;
                 // Calculate tier dynamically using the transient wrapper if needed, or just display points
                 // Ideally, we'd use the LoyaltyAccount logic, but for simple display:
-                LoyaltyAccount account = new LoyaltyAccount(client, client.getLoyaltyPoints(), LoyaltyTier.BRONZE); 
+                LoyaltyAccount account = new LoyaltyAccount(client, client.getLoyaltyPoints()); 
                 // Constructor recalculates tier based on points
                 
-                info += " | Points: " + client.getLoyaltyPoints() + " | Tier: " + account.getTier();
+                info += " | Points: " + client.getLoyaltyPoints();
             }
             
             userInfoLabel.setText(info);

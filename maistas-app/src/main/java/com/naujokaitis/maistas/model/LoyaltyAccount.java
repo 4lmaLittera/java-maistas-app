@@ -9,15 +9,10 @@ public class LoyaltyAccount {
 
     private final Client client;
     private int pointsBalance;
-    private LoyaltyTier tier;
 
-    public LoyaltyAccount(Client client, int initialPoints, LoyaltyTier tier) {
+    public LoyaltyAccount(Client client, int initialPoints) {
         this.client = Objects.requireNonNull(client, "client must not be null");
         this.pointsBalance = Math.max(0, initialPoints);
-        // tier argument is ignored in favor of calculation based on points, or used as fallback?
-        // Logic suggests points dictate tier.
-        this.tier = Objects.requireNonNullElse(tier, LoyaltyTier.BRONZE);
-        recalculateTier();
     }
 
     public void earnPoints(Order order, int points) {
@@ -26,7 +21,6 @@ public class LoyaltyAccount {
             throw new IllegalArgumentException("points must be positive");
         }
         pointsBalance += points;
-        recalculateTier();
     }
 
     public void redeemPoints(int amount) {
@@ -37,19 +31,6 @@ public class LoyaltyAccount {
             throw new IllegalArgumentException("cannot redeem more points than available");
         }
         pointsBalance -= amount;
-        recalculateTier();
-    }
-
-    private void recalculateTier() {
-        if (pointsBalance >= 5000) {
-            tier = LoyaltyTier.PLATINUM;
-        } else if (pointsBalance >= 2500) {
-            tier = LoyaltyTier.GOLD;
-        } else if (pointsBalance >= 1000) {
-            tier = LoyaltyTier.SILVER;
-        } else {
-            tier = LoyaltyTier.BRONZE;
-        }
     }
 }
 

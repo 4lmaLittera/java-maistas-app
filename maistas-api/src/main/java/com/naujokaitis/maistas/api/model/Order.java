@@ -45,6 +45,11 @@ public class Order {
     private ChatThread chatThread;
 
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "pricing_rule_id")
+    private PricingRule pricingRule;
+
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "order_id")
     private List<OrderItem> items = new ArrayList<>();
@@ -95,9 +100,20 @@ public class Order {
         this.currentStatus = newStatus;
     }
 
+    public void applyPricingRule(PricingRule rule) {
+        this.pricingRule = rule;
+        recalculateTotal();
+    }
+
     private void recalculateTotal() {
-        totalPrice = items.stream()
+        BigDecimal subtotal = items.stream()
                 .map(OrderItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        if (pricingRule != null) {
+            totalPrice = subtotal.multiply(BigDecimal.valueOf(pricingRule.getPriceModifier()));
+        } else {
+            totalPrice = subtotal;
+        }
     }
 }
