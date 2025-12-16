@@ -2,3 +2,40 @@
 /maistas-api/.gradle
 /maistas-app/.gradle
 /maistas-mobile/.gradle
+
+# Build directories
+/build/
+/target/
+/out/
+/bin/
+
+# IDE directories
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Gradle
+.gradle/
+build/
+
+# Maven
+target/
+
+# Java
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# OS
+.DS_Store
+Thumbs.db

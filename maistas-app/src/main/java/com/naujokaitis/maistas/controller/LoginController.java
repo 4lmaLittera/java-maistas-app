@@ -33,6 +33,16 @@ public class LoginController {
     private void login() {
         String username = usernameField.getText();
         String raw = passwordField.getText();
+
+        if (username.isEmpty() || raw.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Login failed");
+            alert.setHeaderText(null);
+            alert.setContentText("Username and password are required");
+            alert.showAndWait();
+            return;
+        }
+
         CustomHibernate customHibernate = new CustomHibernate();
         User user = customHibernate.findUserByUsername(username);
 

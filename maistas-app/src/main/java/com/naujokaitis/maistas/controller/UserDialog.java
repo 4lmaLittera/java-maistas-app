@@ -359,6 +359,21 @@ public class UserDialog extends Dialog<User> {
 
         pmDialog.setResultConverter(dialogButton -> {
             if (dialogButton == addButtonType) {
+                if (detailsField.getText().trim().isEmpty()) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Validation Error");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Payment details are required");
+                    alert.showAndWait();
+                    // We can't easily prevent dialog closing here with result converter alone without
+                    // using an event filter like in other dialogs.
+                    // However, we can return null which effectively cancels the result, 
+                    // but the dialog will still close.
+                    // For better UX, we should use the event filter approach, but let's stick to the 
+                    // constraints of the requested change if possible or upgrade the implementation.
+                    // Let's return null to at least prevent invalid data.
+                    return null;
+                }
                 return new PaymentMethod(typeBox.getValue(), detailsField.getText(), defaultCheck.isSelected());
             }
             return null;

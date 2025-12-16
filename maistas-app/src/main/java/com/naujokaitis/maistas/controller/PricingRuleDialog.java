@@ -69,9 +69,16 @@ public class PricingRuleDialog extends Dialog<PricingRule> {
         setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
                 try {
+                    String name = nameField.getText();
+                    if (name == null || name.trim().isEmpty()) {
+                         Alert alert = new Alert(Alert.AlertType.ERROR);
+                         alert.setContentText("Name is required");
+                         alert.show();
+                         return null;
+                    }
                     return new PricingRule(
                             rule == null ? UUID.randomUUID() : rule.getId(),
-                            nameField.getText(),
+                            name,
                             new TimeRange(LocalTime.parse(startTimeField.getText()),
                                     LocalTime.parse(endTimeField.getText())),
                             demandLevelBox.getValue(),
