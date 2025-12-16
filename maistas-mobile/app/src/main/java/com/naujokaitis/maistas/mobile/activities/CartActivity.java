@@ -28,7 +28,7 @@ public class CartActivity extends AppCompatActivity {
     private String userId;
     
     private final String[] paymentTypes = {"CASH", "CARD", "ONLINE"};
-    private final String[] paymentLabels = {"Cash", "Card", "Online"};
+    private final String[] paymentLabels = {"Cash", "Card", "Wallet"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

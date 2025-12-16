@@ -19,7 +19,6 @@ public class AuthController {
     @Autowired
     private DriverRepository driverRepository;
 
-    // Validate user credentials (for login) - only Client and Driver for mobile app
     @PostMapping("/validateUser")
     public @ResponseBody User validateUser(@RequestBody String info) {
         Gson gson = new Gson();
